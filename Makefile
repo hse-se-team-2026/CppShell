@@ -1,7 +1,7 @@
 all: build
 
 format:
-	clang-format-15 -i $(shell find . -path './test-data' -prune -or \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' \) -print)
+	clang-format-20 -i $(shell find . -path './test-data' -prune -or \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' \) -print)
 
 build: format
 	cmake -S . -B build

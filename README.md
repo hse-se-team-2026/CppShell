@@ -8,6 +8,10 @@
 - Pipeline через `|`
 - Запуск внешних программ
 
+## Требования
+- C++23
+- clang-format-20
+
 ## Архитектура
 Подробная архитектура и требования находятся в `docs/Architecture.md` и `docs/Requirements.md`.
 
@@ -25,7 +29,7 @@ make
 
 ## Запуск
 ```
-./cppshell
+./bin/cppshell
 ```
 
 ## Примеры

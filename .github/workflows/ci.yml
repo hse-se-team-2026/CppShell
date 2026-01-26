@@ -14,7 +14,7 @@ jobs:
       - name: Install clang-format
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-format-15
+          sudo apt-get install -y clang-format-20
       - name: Run clang-format (check)
         run: |
           FILES=$(find . -path './test-data' -prune -or \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' \) -print)
@@ -22,7 +22,7 @@ jobs:
             echo "No C/C++ files found; skipping clang-format."
             exit 0
           fi
-          clang-format-15 --dry-run -Werror $FILES
+          clang-format-20 --dry-run -Werror $FILES
 
   clang-tidy:
     runs-on: ubuntu-latest
@@ -32,7 +32,7 @@ jobs:
       - name: Install clang-tidy and cmake
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang-tidy-15 cmake build-essential
+          sudo apt-get install -y clang-tidy-20 cmake build-essential
       - name: Generate compile_commands.json (if CMake exists)
         run: |
           if [ -f CMakeLists.txt ]; then
@@ -47,7 +47,7 @@ jobs:
             echo "No compile_commands.json or no C++ files; skipping clang-tidy."
             exit 0
           fi
-          clang-tidy-15 $FILES -- -I.
+          clang-tidy-20 $FILES -- -I.
 
   cppcheck:
     runs-on: ubuntu-latest
