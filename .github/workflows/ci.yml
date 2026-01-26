@@ -67,8 +67,9 @@ jobs:
           fi
           cppcheck --enable=all --error-exitcode=1 --inline-suppr $FILES
 
-  build:
+  build-linux:
     runs-on: ubuntu-latest
+    needs: [clang-format, clang-tidy, cppcheck]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -85,8 +86,35 @@ jobs:
             echo "No build system found; skipping build."
           fi
 
+  run-linux:
+    runs-on: ubuntu-latest
+    needs: [build-linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build (sanitizers)
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all"
+            cmake --build build
+          elif [ -f Makefile ] || [ -f makefile ]; then
+            CFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            CXXFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            make
+          else
+            echo "No build system found; skipping build."
+          fi
+      - name: Run
+        run: |
+          if [ -x "./bin/cppshell" ]; then
+            ./bin/cppshell
+          else
+            echo "No binary found; skipping run."
+          fi
+
   valgrind:
     runs-on: ubuntu-latest
+    needs: [build-linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,14 +132,11 @@ jobs:
           else
             echo "No build system found; skipping build."
           fi
-      - name: Run valgrind (first ELF executable)
+      - name: Run valgrind (cppshell)
         run: |
-          EXECUTABLE=$(find build -type f -perm -111 -exec file {} \; | awk -F: '/ELF/ {print $1; exit}')
-          if [ -z "$EXECUTABLE" ]; then
-            EXECUTABLE=$(find . -maxdepth 1 -type f -perm -111 -exec file {} \; | awk -F: '/ELF/ {print $1; exit}')
-          fi
-          if [ -z "$EXECUTABLE" ]; then
-            echo "No executable found; skipping valgrind."
+          EXECUTABLE=./bin/cppshell
+          if [ ! -x "$EXECUTABLE" ]; then
+            echo "No binary found at $EXECUTABLE; skipping valgrind."
             exit 0
           fi
           echo "Valgrind target: $EXECUTABLE"
@@ -119,6 +144,7 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    needs: [clang-format, clang-tidy, cppcheck]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -129,5 +155,27 @@ jobs:
             cmake --build build --config Debug
           } else {
             Write-Host "No CMakeLists.txt; skipping Windows build."
+          }
+
+  run-windows:
+    runs-on: windows-latest
+    needs: [build-windows]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build
+        run: |
+          if (Test-Path CMakeLists.txt) {
+            cmake -S . -B build -G "Visual Studio 17 2022"
+            cmake --build build --config Debug
+          } else {
+            Write-Host "No CMakeLists.txt; skipping Windows build."
+          }
+      - name: Run
+        run: |
+          if (Test-Path .\bin\cppshell.exe) {
+            .\bin\cppshell.exe
+          } else {
+            Write-Host "No binary found; skipping run."
           }
 
