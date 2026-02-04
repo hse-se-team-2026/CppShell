@@ -6,111 +6,107 @@ on:
   pull_request:
 
 jobs:
-  analysis:
-    name: formatting + static analysis (linux)
+  clang-format:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install tools
+      - name: Install clang-format-20
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            cmake ninja-build \
-            clang-format clang-tidy \
-            cppcheck
+          sudo apt-get install -y wget lsb-release software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+          sudo apt-get install -y clang-format-20
+          clang-format-20 --version
 
-      - name: clang-format (check)
+      - name: Run clang-format (check)
         run: |
           FILES=$(git ls-files "*.c" "*.cc" "*.cpp" "*.h" "*.hpp")
           if [ -z "$FILES" ]; then
             echo "No C/C++ files found; skipping clang-format."
             exit 0
           fi
-          clang-format --dry-run -Werror $FILES
+          clang-format-20 --dry-run -Werror $FILES
 
-      - name: Configure (for clang-tidy)
-        run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DBUILD_TESTING=ON
+  clang-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: clang-tidy
+      - name: Install clang-tidy-20 and build tools
         run: |
-          FILES=$(git ls-files "*.cpp" "*.hpp")
-          if [ -z "$FILES" ]; then
-            echo "No C++ files found; skipping clang-tidy."
+          sudo apt-get update
+          sudo apt-get install -y wget lsb-release software-properties-common gnupg
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+          sudo apt-get install -y clang-tidy-20
+          sudo apt-get install -y cmake ninja-build g++
+          clang-tidy-20 --version
+
+      - name: Generate compile_commands.json
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+              -DBUILD_TESTING=ON
+          else
+            echo "No CMakeLists.txt; skipping compile_commands generation."
+          fi
+
+      - name: Run clang-tidy
+        run: |
+          FILES=$(git ls-files "*.cpp")
+          if [ ! -f build/compile_commands.json ] || [ -z "$FILES" ]; then
+            echo "No compile_commands.json or no C++ files; skipping clang-tidy."
             exit 0
           fi
-          clang-tidy -p build $FILES -- -I./src -I./build/_deps/doctest-src
+          clang-tidy-20 -p build $FILES -- -I./src -I./build/_deps/doctest-src
 
-      - name: cppcheck
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install cppcheck and build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cppcheck cmake ninja-build g++
+          cppcheck --version
+
+      - name: Configure (fetch test deps)
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DBUILD_TESTING=ON
+          else
+            echo "No CMakeLists.txt; skipping configure step."
+          fi
+
+      - name: Run cppcheck
         run: |
           FILES=$(git ls-files "*.c" "*.cc" "*.cpp")
           if [ -z "$FILES" ]; then
             echo "No C/C++ files found; skipping cppcheck."
             exit 0
           fi
-          cppcheck --enable=all --error-exitcode=1 --inline-suppr --quiet \
+          cppcheck --enable=all --error-exitcode=1 --inline-suppr \
             --suppress=missingIncludeSystem \
-            --suppress=missingInclude \
             -I./src \
+            -I./tests \
             -I./build/_deps/doctest-src \
             $FILES
 
-  test:
-    name: build-and-test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    needs: [analysis]
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-
-      - name: Build (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          cmake --build build
-
-      - name: Test (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          ctest --test-dir build --output-on-failure
-
-      - name: Configure (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64
-
-      - name: Build (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          cmake --build build --config Debug
-
-      - name: Test (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          ctest --test-dir build -C Debug --output-on-failure
-
-  sanitizers:
-    name: build-and-test (linux, asan+ubsan)
+  build-linux:
     runs-on: ubuntu-latest
-    needs: [analysis]
+    needs: [clang-format, clang-tidy, cppcheck]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -120,21 +116,135 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake ninja-build g++
 
-      - name: Configure (ASan/UBSan)
+      - name: Build (sanitizers)
         run: |
-          cmake -S . -B build-sanitize -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
-            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build-sanitize -G Ninja \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DBUILD_TESTING=ON \
+              -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
+              -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+            cmake --build build-sanitize
+          elif [ -f Makefile ] || [ -f makefile ]; then
+            CFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            CXXFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            make
+          else
+            echo "No build system found; skipping build."
+          fi
 
-      - name: Build (ASan/UBSan)
+  run-linux:
+    runs-on: ubuntu-latest
+    needs: [build-linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
         run: |
-          cmake --build build-sanitize
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
 
-      - name: Test (ASan/UBSan)
+      - name: Build (sanitizers)
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build-sanitize -G Ninja \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DBUILD_TESTING=ON \
+              -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all" \
+              -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+            cmake --build build-sanitize
+          elif [ -f Makefile ] || [ -f makefile ]; then
+            CFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            CXXFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            make
+          else
+            echo "No build system found; skipping build."
+          fi
+
+      - name: Run tests (ctest)
         env:
           ASAN_OPTIONS: detect_leaks=1
           UBSAN_OPTIONS: print_stacktrace=1
         run: |
-          ctest --test-dir build-sanitize --output-on-failure
+          if [ -d build-sanitize ]; then
+            ctest --test-dir build-sanitize --output-on-failure
+          else
+            echo "No build directory found; skipping tests."
+          fi
+
+  valgrind:
+    runs-on: ubuntu-latest
+    needs: [build-linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install valgrind and build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind cmake ninja-build g++
+
+      - name: Build (no sanitizers)
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
+            cmake --build build
+          elif [ -f Makefile ] || [ -f makefile ]; then
+            make
+          else
+            echo "No build system found; skipping build."
+          fi
+
+      - name: Run valgrind (cppshell_tests)
+        run: |
+          EXECUTABLE=./bin/cppshell_tests
+          if [ ! -x "$EXECUTABLE" ]; then
+            echo "No test binary found at $EXECUTABLE; skipping valgrind."
+            exit 0
+          fi
+          valgrind --quiet --leak-check=full --error-exitcode=123 "$EXECUTABLE"
+
+  build-windows:
+    runs-on: windows-latest
+    needs: [clang-format, clang-tidy, cppcheck]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        shell: pwsh
+        run: |
+          if (Test-Path CMakeLists.txt) {
+            cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON
+            cmake --build build --config Debug
+          } else {
+            Write-Host "No CMakeLists.txt; skipping Windows build."
+          }
+
+  run-windows:
+    runs-on: windows-latest
+    needs: [build-windows]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        shell: pwsh
+        run: |
+          if (Test-Path CMakeLists.txt) {
+            cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTING=ON
+            cmake --build build --config Debug
+          } else {
+            Write-Host "No CMakeLists.txt; skipping Windows build."
+          }
+
+      - name: Run tests (ctest)
+        shell: pwsh
+        run: |
+          if (Test-Path build) {
+            ctest --test-dir build -C Debug --output-on-failure
+          } else {
+            Write-Host "No build directory found; skipping tests."
+          }
 
