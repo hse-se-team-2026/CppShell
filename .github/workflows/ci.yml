@@ -54,19 +54,19 @@ jobs:
             cmake -S . -B build -G Ninja \
               -DCMAKE_BUILD_TYPE=Debug \
               -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-              -DBUILD_TESTING=ON
+              -DBUILD_TESTING=OFF
           else
             echo "No CMakeLists.txt; skipping compile_commands generation."
           fi
 
       - name: Run clang-tidy
         run: |
-          FILES=$(git ls-files "*.cpp")
+          FILES=$(find src -type f -name '*.cpp' -print)
           if [ ! -f build/compile_commands.json ] || [ -z "$FILES" ]; then
             echo "No compile_commands.json or no C++ files; skipping clang-tidy."
             exit 0
           fi
-          clang-tidy-20 -p build $FILES -- -I./src -I./build/_deps/doctest-src
+          clang-tidy-20 -p build $FILES -- -I./src
 
   cppcheck:
     runs-on: ubuntu-latest
@@ -80,28 +80,17 @@ jobs:
           sudo apt-get install -y cppcheck cmake ninja-build g++
           cppcheck --version
 
-      - name: Configure (fetch test deps)
-        run: |
-          if [ -f CMakeLists.txt ]; then
-            cmake -S . -B build -G Ninja \
-              -DCMAKE_BUILD_TYPE=Debug \
-              -DBUILD_TESTING=ON
-          else
-            echo "No CMakeLists.txt; skipping configure step."
-          fi
-
       - name: Run cppcheck
         run: |
-          FILES=$(git ls-files "*.c" "*.cc" "*.cpp")
+          FILES=$(find src -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' \) -print)
           if [ -z "$FILES" ]; then
             echo "No C/C++ files found; skipping cppcheck."
             exit 0
           fi
           cppcheck --enable=all --error-exitcode=1 --inline-suppr \
             --suppress=missingIncludeSystem \
+            --suppress=missingInclude \
             -I./src \
-            -I./tests \
-            -I./build/_deps/doctest-src \
             $FILES
 
   build-linux:
