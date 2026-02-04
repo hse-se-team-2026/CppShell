@@ -22,6 +22,7 @@
 ## Участники
 - Дмитрий Русанов — https://github.com/DimaRus05
 - Усатов Павел — https://github.com/UsatovPavel
+- Тимофей Устинов — https://github.com/timustinov
 
 ## Сборка
 Проект собирается из консоли через CMake.

@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     return 2;
   }
 
-  const std::string& cmd = args[1];
+  const std::string &cmd = args[1];
 
   if (cmd == "printenv") {
     if (args.size() != 3) {
@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
       return 2;
     }
 
-    const char* v = std::getenv(args[2].c_str());
+    const char *v = std::getenv(args[2].c_str());
     if (v == nullptr) {
       return 1;
     }
