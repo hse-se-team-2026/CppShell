@@ -32,7 +32,10 @@ jobs:
 
       - name: Configure (for clang-tidy)
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DBUILD_TESTING=ON
 
       - name: clang-tidy
         run: |
@@ -41,7 +44,7 @@ jobs:
             echo "No C++ files found; skipping clang-tidy."
             exit 0
           fi
-          clang-tidy -p build $FILES -- -I./src
+          clang-tidy -p build $FILES -- -I./src -I./build/_deps/doctest-src
 
       - name: cppcheck
         run: |
