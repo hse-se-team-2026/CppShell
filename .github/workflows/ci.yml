@@ -1,0 +1,181 @@
+name: ci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-20
+      - name: Run clang-format (check)
+        run: |
+          FILES=$(find . -path './test-data' -prune -or \( -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' \) -print)
+          if [ -z "$FILES" ]; then
+            echo "No C/C++ files found; skipping clang-format."
+            exit 0
+          fi
+          clang-format-20 --dry-run -Werror $FILES
+
+  clang-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install clang-tidy and cmake
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy-20 cmake build-essential
+      - name: Generate compile_commands.json (if CMake exists)
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          else
+            echo "No CMakeLists.txt; skipping compile_commands generation."
+          fi
+      - name: Run clang-tidy (if compile_commands exists)
+        run: |
+          FILES=$(find . -path './test-data' -prune -or \( -iname '*.cpp' -o -iname '*.hpp' \) -print)
+          if [ ! -f build/compile_commands.json ] || [ -z "$FILES" ]; then
+            echo "No compile_commands.json or no C++ files; skipping clang-tidy."
+            exit 0
+          fi
+          clang-tidy-20 $FILES -- -I.
+
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cppcheck
+      - name: Run cppcheck
+        run: |
+          FILES=$(find . -path './test-data' -prune -or \( -iname '*.c' -o -iname '*.cpp' \) -print)
+          if [ -z "$FILES" ]; then
+            echo "No C/C++ files found; skipping cppcheck."
+            exit 0
+          fi
+          cppcheck --enable=all --error-exitcode=1 --inline-suppr $FILES
+
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: [clang-format, clang-tidy, cppcheck]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build (sanitizers)
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all"
+            cmake --build build
+          elif [ -f Makefile ] || [ -f makefile ]; then
+            CFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            CXXFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            make
+          else
+            echo "No build system found; skipping build."
+          fi
+
+  run-linux:
+    runs-on: ubuntu-latest
+    needs: [build-linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build (sanitizers)
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all"
+            cmake --build build
+          elif [ -f Makefile ] || [ -f makefile ]; then
+            CFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            CXXFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all" \
+            make
+          else
+            echo "No build system found; skipping build."
+          fi
+      - name: Run
+        run: |
+          if [ -x "./bin/cppshell" ]; then
+            ./bin/cppshell
+          else
+            echo "No binary found; skipping run."
+          fi
+
+  valgrind:
+    runs-on: ubuntu-latest
+    needs: [build-linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install valgrind and build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind cmake build-essential
+      - name: Build (no sanitizers)
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+            cmake --build build
+          elif [ -f Makefile ] || [ -f makefile ]; then
+            make
+          else
+            echo "No build system found; skipping build."
+          fi
+      - name: Run valgrind (cppshell)
+        run: |
+          EXECUTABLE=./bin/cppshell
+          if [ ! -x "$EXECUTABLE" ]; then
+            echo "No binary found at $EXECUTABLE; skipping valgrind."
+            exit 0
+          fi
+          echo "Valgrind target: $EXECUTABLE"
+          valgrind --quiet --leak-check=full --error-exitcode=123 "$EXECUTABLE"
+
+  build-windows:
+    runs-on: windows-latest
+    needs: [clang-format, clang-tidy, cppcheck]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build
+        run: |
+          if (Test-Path CMakeLists.txt) {
+            cmake -S . -B build -G "Visual Studio 17 2022"
+            cmake --build build --config Debug
+          } else {
+            Write-Host "No CMakeLists.txt; skipping Windows build."
+          }
+
+  run-windows:
+    runs-on: windows-latest
+    needs: [build-windows]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build
+        run: |
+          if (Test-Path CMakeLists.txt) {
+            cmake -S . -B build -G "Visual Studio 17 2022"
+            cmake --build build --config Debug
+          } else {
+            Write-Host "No CMakeLists.txt; skipping Windows build."
+          }
+      - name: Run
+        run: |
+          if (Test-Path .\bin\cppshell.exe) {
+            .\bin\cppshell.exe
+          } else {
+            Write-Host "No binary found; skipping run."
+          }
+

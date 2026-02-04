@@ -1,2 +1,8 @@
+.vscode/
+### Build files ###
+bin/*
+build/
+###Internal usage ###
 internalDocs/*
 *.txt
+!CMakeLists.txt
