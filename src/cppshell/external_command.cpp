@@ -25,6 +25,7 @@
 
 extern char **environ;
 #endif
+#include <algorithm>
 
 namespace cppshell {
 
@@ -383,17 +384,17 @@ CommandResult ExternalCommand::Execute(CommandContext &context) {
 
   std::vector<char *> argv;
   argv.reserve(argvStrings.size() + 1);
-  std::transform(argvStrings.begin(), argvStrings.end(),
-                 std::back_inserter(argv),
-                 [](const std::string &s) { return s.data(); });
+  for (auto &s : argvStrings) {
+    argv.push_back(s.data());
+  }
   argv.push_back(nullptr);
 
   std::vector<std::string> envStrings = env_.ToEnvStrings();
   std::vector<char *> envp;
   envp.reserve(envStrings.size() + 1);
-  std::transform(envStrings.begin(), envStrings.end(),
-                 std::back_inserter(envp),
-                 [](const std::string &s) { return s.data(); });
+  for (auto &s : envStrings) {
+    envp.push_back(s.data());
+  }
   envp.push_back(nullptr);
 
   PipePair stdinPipe{};
