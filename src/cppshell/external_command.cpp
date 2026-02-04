@@ -23,7 +23,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-extern char** environ;
+extern char **environ;
 #endif
 
 namespace cppshell {
@@ -39,7 +39,7 @@ struct PipePair {
   HANDLE write = nullptr;
 };
 
-[[nodiscard]] bool CreateInheritablePipe(PipePair& pipe, bool parentReads) {
+[[nodiscard]] bool CreateInheritablePipe(PipePair &pipe, bool parentReads) {
   SECURITY_ATTRIBUTES sa{};
   sa.nLength = sizeof(sa);
   sa.bInheritHandle = TRUE;
@@ -68,18 +68,19 @@ void CloseHandleIfValid(HANDLE h) {
   }
 }
 
-void PumpHandleToStream(HANDLE hRead, std::ostream& out) {
+void PumpHandleToStream(HANDLE hRead, std::ostream &out) {
   char buffer[kBufferSize];
   DWORD read = 0;
 
-  while (ReadFile(hRead, buffer, static_cast<DWORD>(sizeof(buffer)), &read, nullptr) &&
+  while (ReadFile(hRead, buffer, static_cast<DWORD>(sizeof(buffer)), &read,
+                  nullptr) &&
          read != 0) {
     out.write(buffer, static_cast<std::streamsize>(read));
     out.flush();
   }
 }
 
-void PumpStreamToHandle(std::istream& in, HANDLE hWrite) {
+void PumpStreamToHandle(std::istream &in, HANDLE hWrite) {
   char buffer[kBufferSize];
 
   while (in) {
@@ -89,7 +90,7 @@ void PumpStreamToHandle(std::istream& in, HANDLE hWrite) {
       break;
     }
 
-    const char* p = buffer;
+    const char *p = buffer;
     size_t remaining = static_cast<size_t>(got);
     while (remaining != 0) {
       DWORD written = 0;
@@ -119,7 +120,7 @@ void CloseFdIfValid(int fd) {
   }
 }
 
-[[nodiscard]] bool CreatePipe(PipePair& pipe) {
+[[nodiscard]] bool CreatePipe(PipePair &pipe) {
   int fds[2] = {-1, -1};
   if (::pipe(fds) != 0) {
     return false;
@@ -138,7 +139,7 @@ void CloseFdIfValid(int fd) {
   return true;
 }
 
-void PumpFdToStream(int fdRead, std::ostream& out) {
+void PumpFdToStream(int fdRead, std::ostream &out) {
   char buffer[kBufferSize];
   while (true) {
     const ssize_t n = ::read(fdRead, buffer, sizeof(buffer));
@@ -150,7 +151,7 @@ void PumpFdToStream(int fdRead, std::ostream& out) {
   }
 }
 
-void PumpStreamToFd(std::istream& in, int fdWrite) {
+void PumpStreamToFd(std::istream &in, int fdWrite) {
   char buffer[kBufferSize];
   while (in) {
     in.read(buffer, static_cast<std::streamsize>(sizeof(buffer)));
@@ -159,7 +160,7 @@ void PumpStreamToFd(std::istream& in, int fdWrite) {
       break;
     }
 
-    const char* p = buffer;
+    const char *p = buffer;
     size_t remaining = static_cast<size_t>(got);
     while (remaining != 0) {
       const ssize_t wrote = ::write(fdWrite, p, remaining);
@@ -175,11 +176,12 @@ void PumpStreamToFd(std::istream& in, int fdWrite) {
 #endif
 
 #ifdef _WIN32
-std::wstring Utf8ToWide(const std::string& value) {
+std::wstring Utf8ToWide(const std::string &value) {
   if (value.empty()) {
     return {};
   }
-  const int size = MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, nullptr, 0);
+  const int size =
+      MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, nullptr, 0);
   if (size <= 0) {
     return {};
   }
@@ -188,7 +190,7 @@ std::wstring Utf8ToWide(const std::string& value) {
   return out;
 }
 
-std::wstring QuoteWindowsArg(const std::wstring& arg) {
+std::wstring QuoteWindowsArg(const std::wstring &arg) {
   if (arg.empty()) {
     return L"\"\"";
   }
@@ -236,7 +238,7 @@ std::wstring QuoteWindowsArg(const std::wstring& arg) {
   return out;
 }
 
-std::wstring BuildWindowsCommandLine(const std::vector<std::string>& argvUtf8) {
+std::wstring BuildWindowsCommandLine(const std::vector<std::string> &argvUtf8) {
   std::wstring cmd;
   for (size_t i = 0; i < argvUtf8.size(); ++i) {
     if (i != 0) {
@@ -248,13 +250,15 @@ std::wstring BuildWindowsCommandLine(const std::vector<std::string>& argvUtf8) {
 }
 #endif
 
-}  // namespace
+} // namespace
 
-ExternalCommand::ExternalCommand(std::string program, std::vector<std::string> args,
+ExternalCommand::ExternalCommand(std::string program,
+                                 std::vector<std::string> args,
                                  Environment envForCommand)
-    : program_(std::move(program)), args_(std::move(args)), env_(std::move(envForCommand)) {}
+    : program_(std::move(program)), args_(std::move(args)),
+      env_(std::move(envForCommand)) {}
 
-CommandResult ExternalCommand::Execute(CommandContext& context) {
+CommandResult ExternalCommand::Execute(CommandContext &context) {
   const bool inheritIn = (&context.streams.in == &std::cin);
   const bool inheritOut = (&context.streams.out == &std::cout);
   const bool inheritErr = (&context.streams.err == &std::cerr);
@@ -298,18 +302,19 @@ CommandResult ExternalCommand::Execute(CommandContext& context) {
 
   if (needRedirectIn || needRedirectOut || needRedirectErr) {
     si.dwFlags |= STARTF_USESTDHANDLES;
-    si.hStdInput = needRedirectIn ? stdinPipe.read : GetStdHandle(STD_INPUT_HANDLE);
-    si.hStdOutput = needRedirectOut ? stdoutPipe.write : GetStdHandle(STD_OUTPUT_HANDLE);
-    si.hStdError = needRedirectErr ? stderrPipe.write : GetStdHandle(STD_ERROR_HANDLE);
+    si.hStdInput =
+        needRedirectIn ? stdinPipe.read : GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput =
+        needRedirectOut ? stdoutPipe.write : GetStdHandle(STD_OUTPUT_HANDLE);
+    si.hStdError =
+        needRedirectErr ? stderrPipe.write : GetStdHandle(STD_ERROR_HANDLE);
   }
 
   const DWORD flags = CREATE_UNICODE_ENVIRONMENT;
-  const BOOL ok = CreateProcessW(nullptr, cmdLine.data(), nullptr, nullptr,
-                                 (needRedirectIn || needRedirectOut || needRedirectErr)
-                                     ? TRUE
-                                     : FALSE,
-                                 flags, envBlock.empty() ? nullptr : envBlock.data(),
-                                 nullptr, &si, &pi);
+  const BOOL ok = CreateProcessW(
+      nullptr, cmdLine.data(), nullptr, nullptr,
+      (needRedirectIn || needRedirectOut || needRedirectErr) ? TRUE : FALSE,
+      flags, envBlock.empty() ? nullptr : envBlock.data(), nullptr, &si, &pi);
 
   if (!ok) {
     CloseHandleIfValid(stdinPipe.read);
@@ -380,17 +385,17 @@ CommandResult ExternalCommand::Execute(CommandContext& context) {
   argvStrings.push_back(program_);
   argvStrings.insert(argvStrings.end(), args_.begin(), args_.end());
 
-  std::vector<char*> argv;
+  std::vector<char *> argv;
   argv.reserve(argvStrings.size() + 1);
-  for (auto& s : argvStrings) {
+  for (auto &s : argvStrings) {
     argv.push_back(s.data());
   }
   argv.push_back(nullptr);
 
   std::vector<std::string> envStrings = env_.ToEnvStrings();
-  std::vector<char*> envp;
+  std::vector<char *> envp;
   envp.reserve(envStrings.size() + 1);
-  for (auto& s : envStrings) {
+  for (auto &s : envStrings) {
     envp.push_back(s.data());
   }
   envp.push_back(nullptr);
@@ -435,11 +440,11 @@ CommandResult ExternalCommand::Execute(CommandContext& context) {
   }
 
   pid_t pid{};
-  const int rc = posix_spawnp(&pid, program_.c_str(),
-                             (needRedirectIn || needRedirectOut || needRedirectErr)
-                                 ? &actions
-                                 : nullptr,
-                             nullptr, argv.data(), envp.data());
+  const int rc = posix_spawnp(
+      &pid, program_.c_str(),
+      (needRedirectIn || needRedirectOut || needRedirectErr) ? &actions
+                                                             : nullptr,
+      nullptr, argv.data(), envp.data());
   posix_spawn_file_actions_destroy(&actions);
   if (rc != 0) {
     CloseFdIfValid(stdinPipe.read);
@@ -509,4 +514,4 @@ CommandResult ExternalCommand::Execute(CommandContext& context) {
 #endif
 }
 
-}  // namespace cppshell
+} // namespace cppshell

@@ -9,13 +9,14 @@
 
 namespace {
 
-cppshell::CommandContext MakeCtx(std::istream& in, std::ostream& out, std::ostream& err,
-                                 const cppshell::Environment& env) {
+cppshell::CommandContext MakeCtx(std::istream &in, std::ostream &out,
+                                 std::ostream &err,
+                                 const cppshell::Environment &env) {
   cppshell::CommandStreams s{in, out, err};
   return cppshell::CommandContext{s, env};
 }
 
-}  // namespace
+} // namespace
 
 TEST_CASE("echo prints arguments") {
   std::istringstream in("");
@@ -47,7 +48,8 @@ TEST_CASE("pwd prints current directory") {
 }
 
 TEST_CASE("cat outputs file") {
-  const auto tmp = std::filesystem::temp_directory_path() / "cppshell_cat_test.txt";
+  const auto tmp =
+      std::filesystem::temp_directory_path() / "cppshell_cat_test.txt";
   {
     std::ofstream f(tmp, std::ios::binary);
     f << "abc\n123";
@@ -70,7 +72,8 @@ TEST_CASE("cat outputs file") {
 }
 
 TEST_CASE("wc reports lines words bytes") {
-  const auto tmp = std::filesystem::temp_directory_path() / "cppshell_wc_test.txt";
+  const auto tmp =
+      std::filesystem::temp_directory_path() / "cppshell_wc_test.txt";
   // Content: "a b\ncd\n" -> lines=2, words=3, bytes=7
   {
     std::ofstream f(tmp, std::ios::binary);

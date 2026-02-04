@@ -13,8 +13,9 @@
 
 namespace {
 
-cppshell::CommandContext MakeCtx(std::istream& in, std::ostream& out, std::ostream& err,
-                                 const cppshell::Environment& env) {
+cppshell::CommandContext MakeCtx(std::istream &in, std::ostream &out,
+                                 std::ostream &err,
+                                 const cppshell::Environment &env) {
   cppshell::CommandStreams s{in, out, err};
   return cppshell::CommandContext{s, env};
 }
@@ -31,7 +32,7 @@ cppshell::CommandContext MakeCtx(std::istream& in, std::ostream& out, std::ostre
   return out;
 }
 
-}  // namespace
+} // namespace
 
 TEST_CASE("ExternalCommand: passes environment variables") {
   std::istringstream in("");
@@ -39,7 +40,9 @@ TEST_CASE("ExternalCommand: passes environment variables") {
   std::ostringstream err;
 
   cppshell::Environment base;
-  const auto env = base.WithOverrides(std::unordered_map<std::string, std::string>{{"CPPSHELL_TEST_FOO", "bar"}});
+  const auto env =
+      base.WithOverrides(std::unordered_map<std::string, std::string>{
+          {"CPPSHELL_TEST_FOO", "bar"}});
 
   cppshell::ExternalCommand cmd(CPPSHELL_TEST_HELPER_PATH,
                                 {"printenv", "CPPSHELL_TEST_FOO"}, env);

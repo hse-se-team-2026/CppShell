@@ -16,7 +16,7 @@ namespace {
   return (std::isalnum(static_cast<unsigned char>(c)) != 0) || c == '_';
 }
 
-[[nodiscard]] bool IsValidEnvName(const std::string& s) {
+[[nodiscard]] bool IsValidEnvName(const std::string &s) {
   if (s.empty() || !IsNameStart(s[0])) {
     return false;
   }
@@ -28,7 +28,7 @@ namespace {
   return true;
 }
 
-}  // namespace
+} // namespace
 
 ParseResult ParseLine(std::string_view input) {
   ParseResult result;
@@ -49,7 +49,7 @@ ParseResult ParseLine(std::string_view input) {
 
   // Leading assignments: NAME=value
   for (; i < tok.tokens.size(); ++i) {
-    const std::string& t = tok.tokens[i];
+    const std::string &t = tok.tokens[i];
     const size_t eq = t.find('=');
     if (eq == std::string::npos || eq == 0) {
       break;
@@ -81,4 +81,4 @@ ParseResult ParseLine(std::string_view input) {
   return result;
 }
 
-}  // namespace cppshell
+} // namespace cppshell

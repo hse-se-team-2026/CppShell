@@ -19,24 +19,25 @@ namespace cppshell {
  * processes.
  */
 class Environment {
- public:
+public:
   /** Captures the current process environment into an internal map. */
   Environment();
 
   /** Returns a variable value, if present. */
-  [[nodiscard]] std::optional<std::string> Get(const std::string& name) const;
+  [[nodiscard]] std::optional<std::string> Get(const std::string &name) const;
 
   /** Sets or overwrites a variable in this environment map. */
-  void Set(const std::string& name, const std::string& value);
+  void Set(const std::string &name, const std::string &value);
 
   /** Removes a variable from this environment map. */
-  void Unset(const std::string& name);
+  void Unset(const std::string &name);
 
   /** Returns a copy of this environment with overrides applied. */
   [[nodiscard]] Environment WithOverrides(
-      const std::unordered_map<std::string, std::string>& overrides) const;
+      const std::unordered_map<std::string, std::string> &overrides) const;
 
-  /** Returns environment as a list of strings `NAME=VALUE` suitable for exec. */
+  /** Returns environment as a list of strings `NAME=VALUE` suitable for exec.
+   */
   [[nodiscard]] std::vector<std::string> ToEnvStrings() const;
 
 #ifdef _WIN32
@@ -49,8 +50,8 @@ class Environment {
   [[nodiscard]] std::wstring ToWindowsEnvironmentBlock() const;
 #endif
 
- private:
+private:
   std::unordered_map<std::string, std::string> vars_;
 };
 
-}  // namespace cppshell
+} // namespace cppshell

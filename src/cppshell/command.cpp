@@ -5,9 +5,10 @@
 
 namespace cppshell {
 
-std::unique_ptr<ICommand> CommandFactory::Create(
-    const std::string& name, const std::vector<std::string>& args,
-    const Environment& envForCommand) const {
+std::unique_ptr<ICommand>
+CommandFactory::Create(const std::string &name,
+                       const std::vector<std::string> &args,
+                       const Environment &envForCommand) const {
   if (name == "echo") {
     return std::make_unique<EchoCommand>(args);
   }
@@ -27,4 +28,4 @@ std::unique_ptr<ICommand> CommandFactory::Create(
   return std::make_unique<ExternalCommand>(name, args, envForCommand);
 }
 
-}  // namespace cppshell
+} // namespace cppshell

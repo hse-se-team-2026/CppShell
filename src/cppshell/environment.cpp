@@ -17,7 +17,7 @@
 #endif
 
 #ifndef _WIN32
-extern char** environ;
+extern char **environ;
 #endif
 
 namespace cppshell {
@@ -25,13 +25,13 @@ namespace cppshell {
 namespace {
 
 #ifdef _WIN32
-std::string WideToUtf8(const std::wstring& value) {
+std::string WideToUtf8(const std::wstring &value) {
   if (value.empty()) {
     return {};
   }
 
-  const int size = WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, nullptr, 0,
-                                      nullptr, nullptr);
+  const int size = WideCharToMultiByte(CP_UTF8, 0, value.c_str(), -1, nullptr,
+                                       0, nullptr, nullptr);
   if (size <= 0) {
     return {};
   }
@@ -42,12 +42,13 @@ std::string WideToUtf8(const std::wstring& value) {
   return out;
 }
 
-std::wstring Utf8ToWide(const std::string& value) {
+std::wstring Utf8ToWide(const std::string &value) {
   if (value.empty()) {
     return {};
   }
 
-  const int size = MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, nullptr, 0);
+  const int size =
+      MultiByteToWideChar(CP_UTF8, 0, value.c_str(), -1, nullptr, 0);
   if (size <= 0) {
     return {};
   }
@@ -58,7 +59,7 @@ std::wstring Utf8ToWide(const std::string& value) {
 }
 #endif
 
-}  // namespace
+} // namespace
 
 Environment::Environment() {
 #ifdef _WIN32
@@ -89,7 +90,7 @@ Environment::Environment() {
     return;
   }
 
-  for (char** p = environ; *p != nullptr; ++p) {
+  for (char **p = environ; *p != nullptr; ++p) {
     const std::string entry(*p);
     const size_t eq = entry.find('=');
     if (eq == std::string::npos || eq == 0) {
@@ -100,7 +101,7 @@ Environment::Environment() {
 #endif
 }
 
-std::optional<std::string> Environment::Get(const std::string& name) const {
+std::optional<std::string> Environment::Get(const std::string &name) const {
   const auto it = vars_.find(name);
   if (it == vars_.end()) {
     return std::nullopt;
@@ -108,16 +109,16 @@ std::optional<std::string> Environment::Get(const std::string& name) const {
   return it->second;
 }
 
-void Environment::Set(const std::string& name, const std::string& value) {
+void Environment::Set(const std::string &name, const std::string &value) {
   vars_[name] = value;
 }
 
-void Environment::Unset(const std::string& name) { vars_.erase(name); }
+void Environment::Unset(const std::string &name) { vars_.erase(name); }
 
 Environment Environment::WithOverrides(
-    const std::unordered_map<std::string, std::string>& overrides) const {
+    const std::unordered_map<std::string, std::string> &overrides) const {
   Environment derived = *this;
-  for (const auto& [name, value] : overrides) {
+  for (const auto &[name, value] : overrides) {
     derived.Set(name, value);
   }
   return derived;
@@ -127,7 +128,7 @@ std::vector<std::string> Environment::ToEnvStrings() const {
   std::vector<std::string> out;
   out.reserve(vars_.size());
 
-  for (const auto& [name, value] : vars_) {
+  for (const auto &[name, value] : vars_) {
     out.push_back(name + "=" + value);
   }
 
@@ -142,24 +143,24 @@ std::wstring Environment::ToWindowsEnvironmentBlock() const {
   std::vector<std::wstring> entries;
   entries.reserve(vars_.size());
 
-  for (const auto& [name, value] : vars_) {
+  for (const auto &[name, value] : vars_) {
     entries.push_back(Utf8ToWide(name) + L"=" + Utf8ToWide(value));
   }
 
   std::sort(entries.begin(), entries.end(),
-            [](const std::wstring& a, const std::wstring& b) {
+            [](const std::wstring &a, const std::wstring &b) {
               // Compare only by name part.
               const size_t aeq = a.find(L'=');
               const size_t beq = b.find(L'=');
               const std::wstring an = a.substr(0, aeq);
               const std::wstring bn = b.substr(0, beq);
-              const int cmp = CompareStringOrdinal(an.c_str(), -1, bn.c_str(), -1,
-                                                  TRUE);
+              const int cmp =
+                  CompareStringOrdinal(an.c_str(), -1, bn.c_str(), -1, TRUE);
               return cmp == CSTR_LESS_THAN;
             });
 
   std::wstring block;
-  for (const auto& e : entries) {
+  for (const auto &e : entries) {
     block.append(e);
     block.push_back(L'\0');
   }
@@ -168,4 +169,4 @@ std::wstring Environment::ToWindowsEnvironmentBlock() const {
 }
 #endif
 
-}  // namespace cppshell
+} // namespace cppshell

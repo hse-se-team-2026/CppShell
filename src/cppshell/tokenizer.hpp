@@ -28,4 +28,4 @@ struct TokenizeResult {
  */
 [[nodiscard]] TokenizeResult Tokenize(std::string_view line);
 
-}  // namespace cppshell
+} // namespace cppshell

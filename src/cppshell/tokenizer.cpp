@@ -52,4 +52,4 @@ TokenizeResult Tokenize(std::string_view line) {
   return result;
 }
 
-}  // namespace cppshell
+} // namespace cppshell

@@ -5,7 +5,7 @@
 
 namespace {
 
-[[nodiscard]] int ParseInt(const std::string& s, int fallback) {
+[[nodiscard]] int ParseInt(const std::string &s, int fallback) {
   try {
     return std::stoi(s);
   } catch (...) {
@@ -13,9 +13,9 @@ namespace {
   }
 }
 
-}  // namespace
+} // namespace
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   std::vector<std::string> args;
   args.reserve(static_cast<size_t>(argc));
   for (int i = 0; i < argc; ++i) {

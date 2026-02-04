@@ -18,17 +18,17 @@ namespace cppshell {
  * - environment variables and per-command assignments NAME=value.
  */
 class Shell {
- public:
+public:
   /** Constructs a shell with the current process environment. */
   Shell();
 
   /** Runs the loop and returns the shell exit code. */
-  [[nodiscard]] int Run(std::istream& in, std::ostream& out, std::ostream& err,
+  [[nodiscard]] int Run(std::istream &in, std::ostream &out, std::ostream &err,
                         bool interactive);
 
- private:
+private:
   Environment baseEnv_;
   CommandFactory factory_;
 };
 
-}  // namespace cppshell
+} // namespace cppshell

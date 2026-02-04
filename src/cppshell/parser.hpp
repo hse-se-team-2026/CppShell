@@ -8,7 +8,8 @@
 
 namespace cppshell {
 
-/** Parsed representation of a single input line (no pipelines at this stage). */
+/** Parsed representation of a single input line (no pipelines at this stage).
+ */
 struct ParsedLine {
   /** Environment assignments like NAME=value, appearing before the command. */
   std::unordered_map<std::string, std::string> assignments;
@@ -39,4 +40,4 @@ struct ParseResult {
  */
 [[nodiscard]] ParseResult ParseLine(std::string_view input);
 
-}  // namespace cppshell
+} // namespace cppshell

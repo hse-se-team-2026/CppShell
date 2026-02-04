@@ -15,7 +15,7 @@ struct WcStats {
   size_t bytes = 0;
 };
 
-[[nodiscard]] WcStats CountStream(std::istream& in) {
+[[nodiscard]] WcStats CountStream(std::istream &in) {
   WcStats s;
   bool inWord = false;
 
@@ -40,11 +40,12 @@ struct WcStats {
   return s;
 }
 
-}  // namespace
+} // namespace
 
-EchoCommand::EchoCommand(std::vector<std::string> args) : args_(std::move(args)) {}
+EchoCommand::EchoCommand(std::vector<std::string> args)
+    : args_(std::move(args)) {}
 
-CommandResult EchoCommand::Execute(CommandContext& context) {
+CommandResult EchoCommand::Execute(CommandContext &context) {
   for (size_t i = 0; i < args_.size(); ++i) {
     if (i != 0) {
       context.streams.out << ' ';
@@ -57,9 +58,10 @@ CommandResult EchoCommand::Execute(CommandContext& context) {
   return r;
 }
 
-PwdCommand::PwdCommand(std::vector<std::string> args) : args_(std::move(args)) {}
+PwdCommand::PwdCommand(std::vector<std::string> args)
+    : args_(std::move(args)) {}
 
-CommandResult PwdCommand::Execute(CommandContext& context) {
+CommandResult PwdCommand::Execute(CommandContext &context) {
   if (!args_.empty()) {
     context.streams.err << "pwd: too many arguments\n";
     CommandResult r;
@@ -82,9 +84,10 @@ CommandResult PwdCommand::Execute(CommandContext& context) {
   return r;
 }
 
-CatCommand::CatCommand(std::vector<std::string> args) : args_(std::move(args)) {}
+CatCommand::CatCommand(std::vector<std::string> args)
+    : args_(std::move(args)) {}
 
-CommandResult CatCommand::Execute(CommandContext& context) {
+CommandResult CatCommand::Execute(CommandContext &context) {
   int exitCode = 0;
 
   if (args_.empty()) {
@@ -94,7 +97,7 @@ CommandResult CatCommand::Execute(CommandContext& context) {
     return r;
   }
 
-  for (const auto& file : args_) {
+  for (const auto &file : args_) {
     std::ifstream in(file, std::ios::binary);
     if (!in) {
       context.streams.err << "cat: cannot open file: " << file << "\n";
@@ -111,7 +114,7 @@ CommandResult CatCommand::Execute(CommandContext& context) {
 
 WcCommand::WcCommand(std::vector<std::string> args) : args_(std::move(args)) {}
 
-CommandResult WcCommand::Execute(CommandContext& context) {
+CommandResult WcCommand::Execute(CommandContext &context) {
   if (args_.empty()) {
     const WcStats s = CountStream(context.streams.in);
     context.streams.out << s.lines << ' ' << s.words << ' ' << s.bytes << '\n';
@@ -127,7 +130,7 @@ CommandResult WcCommand::Execute(CommandContext& context) {
     return r;
   }
 
-  const std::string& file = args_.front();
+  const std::string &file = args_.front();
   std::ifstream in(file, std::ios::binary);
   if (!in) {
     context.streams.err << "wc: cannot open file: " << file << "\n";
@@ -143,9 +146,10 @@ CommandResult WcCommand::Execute(CommandContext& context) {
   return r;
 }
 
-ExitCommand::ExitCommand(std::vector<std::string> args) : args_(std::move(args)) {}
+ExitCommand::ExitCommand(std::vector<std::string> args)
+    : args_(std::move(args)) {}
 
-CommandResult ExitCommand::Execute(CommandContext& context) {
+CommandResult ExitCommand::Execute(CommandContext &context) {
   if (args_.empty()) {
     CommandResult r;
     r.exitCode = 0;
@@ -175,4 +179,4 @@ CommandResult ExitCommand::Execute(CommandContext& context) {
   }
 }
 
-}  // namespace cppshell
+} // namespace cppshell
