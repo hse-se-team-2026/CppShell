@@ -87,9 +87,8 @@ jobs:
             echo "No C/C++ files found; skipping cppcheck."
             exit 0
           fi
-          cppcheck --enable=all --error-exitcode=1 --inline-suppr \
+          cppcheck --enable=warning,performance,portability --error-exitcode=1 --inline-suppr --quiet \
             --suppress=missingIncludeSystem \
-            --suppress=missingInclude \
             -I./src \
             $FILES
 

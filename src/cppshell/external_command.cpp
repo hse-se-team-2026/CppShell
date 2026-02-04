@@ -195,13 +195,9 @@ std::wstring QuoteWindowsArg(const std::wstring &arg) {
     return L"\"\"";
   }
 
-  bool needQuotes = false;
-  for (wchar_t c : arg) {
-    if (c == L' ' || c == L'\t' || c == L'\n' || c == L'\v' || c == L'\"') {
-      needQuotes = true;
-      break;
-    }
-  }
+  const bool needQuotes = std::any_of(arg.begin(), arg.end(), [](wchar_t c) {
+    return c == L' ' || c == L'\t' || c == L'\n' || c == L'\v' || c == L'\"';
+  });
   if (!needQuotes) {
     return arg;
   }
@@ -387,17 +383,17 @@ CommandResult ExternalCommand::Execute(CommandContext &context) {
 
   std::vector<char *> argv;
   argv.reserve(argvStrings.size() + 1);
-  for (auto &s : argvStrings) {
-    argv.push_back(s.data());
-  }
+  std::transform(argvStrings.begin(), argvStrings.end(),
+                 std::back_inserter(argv),
+                 [](const std::string &s) { return s.data(); });
   argv.push_back(nullptr);
 
   std::vector<std::string> envStrings = env_.ToEnvStrings();
   std::vector<char *> envp;
   envp.reserve(envStrings.size() + 1);
-  for (auto &s : envStrings) {
-    envp.push_back(s.data());
-  }
+  std::transform(envStrings.begin(), envStrings.end(),
+                 std::back_inserter(envp),
+                 [](const std::string &s) { return s.data(); });
   envp.push_back(nullptr);
 
   PipePair stdinPipe{};

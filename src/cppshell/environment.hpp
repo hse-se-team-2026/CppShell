@@ -23,14 +23,8 @@ public:
   /** Captures the current process environment into an internal map. */
   Environment();
 
-  /** Returns a variable value, if present. */
-  [[nodiscard]] std::optional<std::string> Get(const std::string &name) const;
-
   /** Sets or overwrites a variable in this environment map. */
   void Set(const std::string &name, const std::string &value);
-
-  /** Removes a variable from this environment map. */
-  void Unset(const std::string &name);
 
   /** Returns a copy of this environment with overrides applied. */
   [[nodiscard]] Environment WithOverrides(

@@ -101,19 +101,9 @@ Environment::Environment() {
 #endif
 }
 
-std::optional<std::string> Environment::Get(const std::string &name) const {
-  const auto it = vars_.find(name);
-  if (it == vars_.end()) {
-    return std::nullopt;
-  }
-  return it->second;
-}
-
 void Environment::Set(const std::string &name, const std::string &value) {
   vars_[name] = value;
 }
-
-void Environment::Unset(const std::string &name) { vars_.erase(name); }
 
 Environment Environment::WithOverrides(
     const std::unordered_map<std::string, std::string> &overrides) const {
