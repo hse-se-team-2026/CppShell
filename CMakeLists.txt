@@ -28,7 +28,7 @@ add_library(cppshell_core
     src/cppshell/shell.cpp
 )
 
-target_include_directories(cppshell_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(cppshell_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(cppshell_core PUBLIC cxx_std_23)
 
 add_executable(cppshell src/cli/cli.cpp)

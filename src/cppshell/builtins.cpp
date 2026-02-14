@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <iterator>
 
 namespace cppshell {
 
@@ -19,14 +20,16 @@ struct WcStats {
   WcStats s;
   bool inWord = false;
 
-  char ch;
-  while (in.get(ch)) {
+  std::istreambuf_iterator<char> it(in);
+  const std::istreambuf_iterator<char> end;
+  for (; it != end; ++it) {
+    unsigned char uch = static_cast<unsigned char>(*it);
     ++s.bytes;
-    if (ch == '\n') {
+    if (uch == '\n') {
       ++s.lines;
     }
 
-    const bool ws = (std::isspace(static_cast<unsigned char>(ch)) != 0);
+    const bool ws = (std::isspace(uch) != 0);
     if (ws) {
       inWord = false;
     } else {
