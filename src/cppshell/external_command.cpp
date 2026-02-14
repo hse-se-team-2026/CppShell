@@ -384,16 +384,16 @@ CommandResult ExternalCommand::Execute(CommandContext &context) {
 
   std::vector<char *> argv;
   argv.reserve(argvStrings.size() + 1);
-  for (auto &s : argvStrings) {
-    argv.push_back(s.data());
+  for (const auto &s : argvStrings) {
+    argv.push_back(const_cast<char *>(s.c_str()));
   }
   argv.push_back(nullptr);
 
   std::vector<std::string> envStrings = env_.ToEnvStrings();
   std::vector<char *> envp;
   envp.reserve(envStrings.size() + 1);
-  for (auto &s : envStrings) {
-    envp.push_back(s.data());
+  for (const auto &s : envStrings) {
+    envp.push_back(const_cast<char *>(s.c_str()));
   }
   envp.push_back(nullptr);
 

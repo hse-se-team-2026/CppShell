@@ -3,8 +3,8 @@
 #include <cctype>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 #include <iterator>
+#include <sstream>
 
 namespace cppshell {
 
