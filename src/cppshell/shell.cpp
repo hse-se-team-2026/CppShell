@@ -8,7 +8,10 @@
 #include <string>
 #include <vector>
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include "cppshell/pipe.hpp"
+#include <thread>
+#else
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -76,7 +79,71 @@ int Shell::Run(std::istream &in, std::ostream &out, std::ostream &err,
       continue;
     }
 
-    // Pipeline execution (multiple commands)
+#ifdef _WIN32
+    // Windows Implementation using std::thread and in-memory Pipe
+    std::vector<std::thread> threads;
+    std::vector<std::unique_ptr<Pipe>> pipes;
+    std::vector<int> exitCodes(pipeline.commands.size(), 0);
+
+    // Create pipes
+    for (size_t i = 0; i < pipeline.commands.size() - 1; ++i) {
+      pipes.push_back(std::make_unique<Pipe>());
+    }
+
+    for (size_t i = 0; i < pipeline.commands.size(); ++i) {
+      threads.emplace_back([&, i]() {
+        const auto &cmdData = pipeline.commands[i];
+        Environment envForCommand = baseEnv_.WithOverrides(cmdData.assignments);
+
+        // Input Setup
+        std::unique_ptr<PipeReadBuffer> readBuf;
+        std::unique_ptr<std::istream> pipeIn;
+        std::istream *currentIn = &in;
+
+        if (i > 0) {
+          readBuf = std::make_unique<PipeReadBuffer>(*pipes[i - 1]);
+          pipeIn = std::make_unique<std::istream>(readBuf.get());
+          currentIn = pipeIn.get();
+        }
+
+        // Output Setup
+        std::unique_ptr<PipeWriteBuffer> writeBuf;
+        std::unique_ptr<std::ostream> pipeOut;
+        std::ostream *currentOut = &out;
+
+        if (i < pipeline.commands.size() - 1) {
+          writeBuf = std::make_unique<PipeWriteBuffer>(*pipes[i]);
+          pipeOut = std::make_unique<std::ostream>(writeBuf.get());
+          currentOut = pipeOut.get();
+        }
+
+        CommandStreams streams{*currentIn, *currentOut, err};
+        CommandContext ctx{streams, envForCommand};
+
+        std::unique_ptr<ICommand> cmd =
+            factory_.Create(cmdData.command, cmdData.args, envForCommand);
+        const CommandResult r = cmd->Execute(ctx);
+        exitCodes[i] = r.exitCode;
+
+        // Close output pipe to signal EOF to the next command
+        if (i < pipeline.commands.size() - 1) {
+          pipes[i]->Close();
+        }
+      });
+    }
+
+    // Wait for all threads
+    for (auto &t : threads) {
+      if (t.joinable())
+        t.join();
+    }
+
+    if (!exitCodes.empty()) {
+      lastExitCode = exitCodes.back();
+    }
+
+#else
+    // Linux Implementation (fork/exec/pipe)
     int prevPipeRead = -1;
     std::vector<pid_t> pids;
 
@@ -128,9 +195,6 @@ int Shell::Run(std::istream &in, std::ostream &out, std::ostream &err,
 
         std::unique_ptr<ICommand> cmd =
             factory_.Create(cmdData.command, cmdData.args, envForCommand);
-        // Execute command. For builtins this runs in-process (child).
-        // For external commands, this might span another child, but we wait for
-        // it.
         const CommandResult r = cmd->Execute(ctx);
         std::exit(r.exitCode);
       } else {
@@ -159,6 +223,7 @@ int Shell::Run(std::istream &in, std::ostream &out, std::ostream &err,
         lastExitCode = 128 + WTERMSIG(status);
       }
     }
+#endif
     // Return code is from last command? Usually yes.
     // We don't return here but continue loop.
   }
