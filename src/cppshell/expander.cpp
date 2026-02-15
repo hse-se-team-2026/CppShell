@@ -108,16 +108,9 @@ std::string Expand(const std::string &input, const Environment &env) {
   std::string result;
   bool insideSingle = false;
   bool insideDouble = false;
-  bool escaped = false;
 
   for (size_t i = 0; i < input.size(); ++i) {
     char c = input[i];
-
-    if (escaped) {
-      result.push_back(c);
-      escaped = false;
-      continue;
-    }
 
     if (c == '\\') {
       if (insideSingle) {

@@ -19,3 +19,6 @@ run: build
 clean:
 	cmake --build build --target clean || true
 	rm -rf build
+
+cppcheck:
+	cppcheck --enable=all --suppress=missingIncludeSystem -I include src tests
