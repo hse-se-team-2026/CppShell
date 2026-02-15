@@ -20,6 +20,7 @@ Shell::Shell() : baseEnv_(), factory_() {}
 
 int Shell::Run(std::istream &in, std::ostream &out, std::ostream &err,
                bool interactive) {
+  int lastExitCode = 0;
   std::string line;
 
   while (true) {
@@ -29,7 +30,7 @@ int Shell::Run(std::istream &in, std::ostream &out, std::ostream &err,
 
     if (!std::getline(in, line)) {
       // EOF
-      return 0;
+      return lastExitCode;
     }
 
     // Perform variable substitution and arithmetic expansion.
@@ -38,6 +39,7 @@ int Shell::Run(std::istream &in, std::ostream &out, std::ostream &err,
     const ParseResult parsed = ParseLine(expandedLine);
     if (!parsed.Ok()) {
       err << "parse error: " << parsed.error << '\n';
+      lastExitCode = 2; // Syntax error code
       continue;
     }
 
@@ -58,6 +60,7 @@ int Shell::Run(std::istream &in, std::ostream &out, std::ostream &err,
         for (const auto &[name, value] : cmdData.assignments) {
           baseEnv_.Set(name, value);
         }
+        lastExitCode = 0; // Assignment-only commands usually succeed
         continue;
       }
       Environment envForCommand = baseEnv_.WithOverrides(cmdData.assignments);
@@ -66,6 +69,7 @@ int Shell::Run(std::istream &in, std::ostream &out, std::ostream &err,
       std::unique_ptr<ICommand> cmd =
           factory_.Create(cmdData.command, cmdData.args, envForCommand);
       const CommandResult r = cmd->Execute(ctx);
+      lastExitCode = r.exitCode;
       if (r.shouldExit) {
         return r.shellExitCode;
       }
@@ -146,12 +150,13 @@ int Shell::Run(std::istream &in, std::ostream &out, std::ostream &err,
     safe_close(prevPipeRead);
 
     // Wait for all children
-    int lastExitCode = 0;
     for (pid_t pid : pids) {
       int status;
       waitpid(pid, &status, 0);
       if (WIFEXITED(status)) {
         lastExitCode = WEXITSTATUS(status);
+      } else if (WIFSIGNALED(status)) {
+        lastExitCode = 128 + WTERMSIG(status);
       }
     }
     // Return code is from last command? Usually yes.

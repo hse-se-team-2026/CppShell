@@ -35,6 +35,18 @@ TEST_CASE("ParseLine: pipeline two commands") {
   CHECK(cmd2.command == "cmd2");
   CHECK(cmd2.args.size() == 1);
   CHECK(cmd2.args[0] == "arg2");
+  CHECK(cmd2.args[0] == "arg2");
+}
+
+TEST_CASE("ParseLine: pipeline three commands") {
+  const auto r = cppshell::ParseLine("cmd1 | cmd2 | cmd3");
+  REQUIRE(r.Ok());
+  REQUIRE(r.pipeline.has_value());
+  REQUIRE(r.pipeline->commands.size() == 3);
+
+  CHECK(r.pipeline->commands[0].command == "cmd1");
+  CHECK(r.pipeline->commands[1].command == "cmd2");
+  CHECK(r.pipeline->commands[2].command == "cmd3");
 }
 
 TEST_CASE("ParseLine: leading env assignments") {
