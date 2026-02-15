@@ -6,9 +6,8 @@
 
 ## Возможности
 - Встроенные команды: `cat`, `echo`, `wc`, `pwd`, `exit`
-- Поддержка переменных окружения и подстановок `$NAME`
-- Одинарные и двойные кавычки
-- Pipeline через `|`
+- Поддержка переменных окружения (снимок окружения процесса) и присваиваний `NAME=value`
+- Одинарные и двойные кавычки (строка в кавычках = один аргумент)
 - Запуск внешних программ
 
 ## Требования
@@ -23,29 +22,44 @@
 ## Участники
 - Дмитрий Русанов — https://github.com/DimaRus05
 - Усатов Павел — https://github.com/UsatovPavel
+- Тимофей Устинов — https://github.com/timustinov
 
 ## Сборка
-Если используется CMake:
+Проект собирается из консоли через CMake.
+
+Linux/macOS (single-config генераторы):
 ```
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
+ctest --test-dir build --output-on-failure
 ```
 
-Если используется Makefile:
+Windows (Visual Studio Build Tools, multi-config):
 ```
-make
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Debug
+ctest --test-dir build -C Debug --output-on-failure
 ```
+
+Примечание: можно использовать Ninja (в т.ч. Multi-Config), если он установлен.
 
 ## Запуск
+Linux/macOS:
 ```
 ./bin/cppshell
+```
+
+Windows:
+```
+./bin/Debug/cppshell.exe
 ```
 
 ## Примеры
 ```
 echo "Hello, world!"
 FILE=example.txt
-cat $FILE
-cat example.txt | wc
-echo 123 | wc
+cat "example.txt"
+wc "example.txt"
+pwd
+exit 0
 ```

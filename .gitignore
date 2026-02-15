@@ -2,6 +2,7 @@
 ### Build files ###
 bin/*
 build/
+build-*/
 ###Internal usage ###
 internalDocs/*
 *.txt
