@@ -26,6 +26,7 @@ add_library(cppshell_core
     src/cppshell/external_command.cpp
     src/cppshell/command.cpp
     src/cppshell/shell.cpp
+    src/cppshell/expander.cpp
 )
 
 target_include_directories(cppshell_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -57,6 +58,7 @@ if (BUILD_TESTING)
         tests/test_parser.cpp
         tests/test_builtins.cpp
         tests/test_external.cpp
+        tests/test_expander.cpp
     )
 
     target_link_libraries(cppshell_tests PRIVATE cppshell_core doctest::doctest)

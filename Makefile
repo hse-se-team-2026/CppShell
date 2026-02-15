@@ -7,10 +7,12 @@ build: format
 	cmake -S . -B build
 	cmake --build build
 
+test: build
+	ctest --test-dir build --output-on-failure
+
 run: build
 	./bin/cppshell
 
 clean:
 	cmake --build build --target clean || true
 	rm -rf build
-
