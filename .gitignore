@@ -4,4 +4,5 @@ bin/*
 build/
 build-*/
 ###Internal usage ###
+internalDocs/*
 !CMakeLists.txt

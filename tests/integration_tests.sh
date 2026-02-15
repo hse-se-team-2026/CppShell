@@ -85,6 +85,71 @@ fi
 rm $OUT_FILE $ERR_FILE
 
 echo "------------------------------------------------"
+# Test 5: Variable Assignment & Substitution
+echo "------------------------------------------------"
+echo "Testing Substitution: NAME=world -> echo \$NAME"
+# Pass script as stdin
+RESULT=$($BIN <<EOF
+NAME=world
+echo \$NAME
+EOF
+)
+if echo "$RESULT" | grep -q "world"; then
+  echo "✅ PASS (Simple Assignment)"
+else
+  echo "❌ FAIL: Expected 'world', got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+# Test 6: Quoting Behavior
+echo "------------------------------------------------"
+echo "Testing Quoting: Double vs Single"
+# Double quotes expand $NAME, single quotes do not.
+RESULT=$($BIN <<EOF
+NAME=universe
+echo "Double: \$NAME"
+echo 'Single: \$NAME'
+EOF
+)
+
+if echo "$RESULT" | grep -q "Double: universe" && echo "$RESULT" | grep -q 'Single: $NAME'; then
+  # Note: grep for '$NAME' is tricky. 'Single: $NAME' literal match.
+  echo "✅ PASS (Quoting)"
+else
+  echo "❌ FAIL: Quoting mismatch. Output:"
+  echo "$RESULT"
+  exit 1
+fi
+
+# Test 7: Arithmetic Expansion
+echo "------------------------------------------------"
+echo "Testing Arithmetic: \$((10+32))"
+RESULT=$(echo "echo \$((10+32))" | $BIN)
+
+if echo "$RESULT" | grep -q "42"; then
+  echo "✅ PASS (Arithmetic)"
+else
+  echo "❌ FAIL: Expected '42', got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+# Test 7: Arithmetic Expansion
+echo "------------------------------------------------"
+echo "Testing Arithmetic: \$((10*3-30/3))"
+RESULT=$(echo "echo \$((10*3-30/3))" | $BIN)
+
+if echo "$RESULT" | grep -q "20"; then
+  echo "✅ PASS (Arithmetic)"
+else
+  echo "❌ FAIL: Expected '20', got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+
+echo "------------------------------------------------"
 echo "All integration tests passed!"
 exit 0
 

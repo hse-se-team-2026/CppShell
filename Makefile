@@ -7,9 +7,11 @@ build: format
 	cmake -S . -B build
 	cmake --build build
 
+# Better two times
 test: build
-	ctest --test-dir build --output-on-failure
+	ctest --test-dir build --verbose
 	./bin/cppshell_tests
+	./tests/integration_tests.sh
 
 run: build
 	./bin/cppshell

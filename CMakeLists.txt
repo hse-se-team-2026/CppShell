@@ -68,5 +68,13 @@ if (BUILD_TESTING)
     )
 
     add_test(NAME cppshell_tests COMMAND cppshell_tests)
+
+    # Integration tests (run bash script)
+    if (UNIX)
+        add_test(NAME integration_tests
+                 COMMAND bash tests/integration_tests.sh
+                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        )
+    endif()
 endif()
 
