@@ -9,6 +9,7 @@ build: format
 
 test: build
 	ctest --test-dir build --output-on-failure
+	./bin/cppshell_tests
 
 run: build
 	./bin/cppshell
