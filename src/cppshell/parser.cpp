@@ -40,44 +40,55 @@ ParseResult ParseLine(std::string_view input) {
   }
 
   if (tok.tokens.empty()) {
-    result.line = std::nullopt;
+    result.pipeline = std::nullopt;
     return result;
   }
 
-  ParsedLine parsed;
-  size_t i = 0;
+  Pipeline pipeline;
+  size_t start = 0;
 
-  // Leading assignments: NAME=value
-  for (; i < tok.tokens.size(); ++i) {
-    const std::string &t = tok.tokens[i];
-    const size_t eq = t.find('=');
-    if (eq == std::string::npos || eq == 0) {
-      break;
+  while (start < tok.tokens.size()) {
+    // Find next pipe or end
+    size_t end = start;
+    while (end < tok.tokens.size() && tok.tokens[end] != "|") {
+      end++;
     }
 
-    const std::string name = t.substr(0, eq);
-    const std::string value = t.substr(eq + 1);
-    if (!IsValidEnvName(name)) {
-      break;
+    // Process segment [start, end)
+    Command cmd;
+    size_t i = start;
+
+    // Leading assignments: NAME=value
+    for (; i < end; ++i) {
+      const std::string &t = tok.tokens[i];
+      const size_t eq = t.find('=');
+      if (eq == std::string::npos || eq == 0) {
+        break;
+      }
+
+      const std::string name = t.substr(0, eq);
+      const std::string value = t.substr(eq + 1);
+      if (!IsValidEnvName(name)) {
+        break;
+      }
+
+      cmd.assignments.emplace(name, value);
     }
 
-    parsed.assignments.emplace(name, value);
+    if (i < end) {
+      cmd.command = tok.tokens[i];
+      for (size_t j = i + 1; j < end; ++j) {
+        cmd.args.push_back(tok.tokens[j]);
+      }
+    }
+
+    pipeline.commands.push_back(std::move(cmd));
+
+    // skip pipe
+    start = end + 1;
   }
 
-  if (i >= tok.tokens.size()) {
-    // Only assignments.
-    parsed.command.clear();
-    parsed.args.clear();
-    result.line = std::move(parsed);
-    return result;
-  }
-
-  parsed.command = tok.tokens[i];
-  for (size_t j = i + 1; j < tok.tokens.size(); ++j) {
-    parsed.args.push_back(tok.tokens[j]);
-  }
-
-  result.line = std::move(parsed);
+  result.pipeline = std::move(pipeline);
   return result;
 }
 

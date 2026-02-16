@@ -25,6 +25,12 @@ TokenizeResult Tokenize(std::string_view line) {
         continue;
       }
 
+      if (ch == '|') {
+        Flush();
+        result.tokens.emplace_back("|");
+        continue;
+      }
+
       if (ch == '\'' || ch == '"') {
         quote = ch;
         continue;

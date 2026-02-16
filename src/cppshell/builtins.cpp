@@ -161,9 +161,11 @@ CommandResult ExitCommand::Execute(CommandContext &context) {
     return r;
   }
 
-  if (args_.size() != 1) {
+  if (args_.size() > 1) {
+    context.streams.err << "exit: too many arguments\n";
     CommandResult r;
-    r.exitCode = 2;
+    r.exitCode = 1;
+    r.shouldExit = false;
     return r;
   }
 
