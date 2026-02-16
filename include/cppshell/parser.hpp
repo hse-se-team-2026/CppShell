@@ -8,21 +8,24 @@
 
 namespace cppshell {
 
-/** Parsed representation of a single input line (no pipelines at this stage).
- */
-struct ParsedLine {
+struct Command {
   /** Environment assignments like NAME=value, appearing before the command. */
   std::unordered_map<std::string, std::string> assignments;
-  /** Command name, or empty if the line contained only assignments. */
+  /** Command name, or empty if the command contained only assignments. */
   std::string command;
   /** Command arguments, excluding the command name. */
   std::vector<std::string> args;
 };
 
+/** Parsed representation of a command pipeline. */
+struct Pipeline {
+  std::vector<Command> commands;
+};
+
 /** Result of parsing a line into assignments + command + args. */
 struct ParseResult {
-  /** Parsed line, if parsing succeeded and the input wasn't empty. */
-  std::optional<ParsedLine> line;
+  /** Parsed pipeline, if parsing succeeded and the input wasn't empty. */
+  std::optional<Pipeline> pipeline;
   /** Human-readable error; empty if successful. */
   std::string error;
 

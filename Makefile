@@ -7,6 +7,12 @@ build: format
 	cmake -S . -B build
 	cmake --build build
 
+# Better two times
+test: build
+	ctest --test-dir build --verbose
+	./bin/cppshell_tests
+	./tests/integration_tests.sh
+
 run: build
 	./bin/cppshell
 
@@ -14,3 +20,5 @@ clean:
 	cmake --build build --target clean || true
 	rm -rf build
 
+cppcheck:
+	cppcheck --enable=all --suppress=missingIncludeSystem -I include src tests

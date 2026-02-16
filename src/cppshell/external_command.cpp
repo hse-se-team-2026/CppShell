@@ -26,6 +26,7 @@
 extern char **environ;
 #endif
 #include <algorithm>
+#include <iterator>
 
 namespace cppshell {
 
@@ -247,6 +248,30 @@ std::wstring BuildWindowsCommandLine(const std::vector<std::string> &argvUtf8) {
 }
 #endif
 
+#ifdef _WIN32
+std::string GetLastErrorMessage(DWORD errCode) {
+  if (errCode == 0)
+    return "No error";
+
+  LPSTR messageBuffer = nullptr;
+  size_t size = FormatMessageA(
+      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+          FORMAT_MESSAGE_IGNORE_INSERTS,
+      nullptr, errCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      (LPSTR)&messageBuffer, 0, nullptr);
+
+  std::string message(messageBuffer, size);
+  LocalFree(messageBuffer);
+
+  // Remove trailing whitespace/newlines
+  while (!message.empty() &&
+         std::isspace(static_cast<unsigned char>(message.back()))) {
+    message.pop_back();
+  }
+  return message;
+}
+#endif
+
 } // namespace
 
 ExternalCommand::ExternalCommand(std::string program,
@@ -314,6 +339,13 @@ CommandResult ExternalCommand::Execute(CommandContext &context) {
       flags, envBlock.empty() ? nullptr : envBlock.data(), nullptr, &si, &pi);
 
   if (!ok) {
+    const DWORD err = GetLastError();
+    if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
+      context.streams.err << program_ << ": command not found\n";
+    } else {
+      context.streams.err << program_ << ": " << GetLastErrorMessage(err)
+                          << "\n";
+    }
     CloseHandleIfValid(stdinPipe.read);
     CloseHandleIfValid(stdinPipe.write);
     CloseHandleIfValid(stdoutPipe.read);
@@ -384,17 +416,17 @@ CommandResult ExternalCommand::Execute(CommandContext &context) {
 
   std::vector<char *> argv;
   argv.reserve(argvStrings.size() + 1);
-  for (const auto &s : argvStrings) {
-    argv.push_back(const_cast<char *>(s.c_str()));
-  }
+  std::transform(
+      argvStrings.begin(), argvStrings.end(), std::back_inserter(argv),
+      [](const std::string &s) { return const_cast<char *>(s.c_str()); });
   argv.push_back(nullptr);
 
   std::vector<std::string> envStrings = env_.ToEnvStrings();
   std::vector<char *> envp;
   envp.reserve(envStrings.size() + 1);
-  for (const auto &s : envStrings) {
-    envp.push_back(const_cast<char *>(s.c_str()));
-  }
+  std::transform(
+      envStrings.begin(), envStrings.end(), std::back_inserter(envp),
+      [](const std::string &s) { return const_cast<char *>(s.c_str()); });
   envp.push_back(nullptr);
 
   PipePair stdinPipe{};
@@ -444,6 +476,11 @@ CommandResult ExternalCommand::Execute(CommandContext &context) {
       nullptr, argv.data(), envp.data());
   posix_spawn_file_actions_destroy(&actions);
   if (rc != 0) {
+    if (rc == ENOENT) {
+      context.streams.err << program_ << ": command not found\n";
+    } else {
+      context.streams.err << program_ << ": " << std::strerror(rc) << "\n";
+    }
     CloseFdIfValid(stdinPipe.read);
     CloseFdIfValid(stdinPipe.write);
     CloseFdIfValid(stdoutPipe.read);

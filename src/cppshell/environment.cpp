@@ -105,6 +105,14 @@ void Environment::Set(const std::string &name, const std::string &value) {
   vars_[name] = value;
 }
 
+std::string Environment::Get(const std::string &name) const {
+  auto it = vars_.find(name);
+  if (it != vars_.end()) {
+    return it->second;
+  }
+  return {};
+}
+
 Environment Environment::WithOverrides(
     const std::unordered_map<std::string, std::string> &overrides) const {
   Environment derived = *this;
