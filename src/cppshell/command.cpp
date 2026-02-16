@@ -1,6 +1,7 @@
 #include "cppshell/command.hpp"
 
 #include "cppshell/builtins.hpp"
+#include "cppshell/grep_command.hpp"
 #include "cppshell/external_command.hpp"
 
 namespace cppshell {
@@ -23,6 +24,9 @@ CommandFactory::Create(const std::string &name,
   }
   if (name == "exit") {
     return std::make_unique<ExitCommand>(args);
+  }
+  if (name == "grep") {
+    return std::make_unique<GrepCommand>(args);
   }
 
   return std::make_unique<ExternalCommand>(name, args, envForCommand);
