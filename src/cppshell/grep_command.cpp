@@ -25,8 +25,9 @@ CommandResult GrepCommand::Execute(CommandContext &context) {
   // Create C-style argv array for CLI11 parsing.
   std::vector<char *> c_argv;
   c_argv.reserve(argv.size());
-  std::transform(argv.begin(), argv.end(), std::back_inserter(c_argv),
-                 [](std::string &s) { return s.data(); });
+  std::transform(
+      argv.begin(), argv.end(), std::back_inserter(c_argv),
+      [](const std::string &s) { return const_cast<char *>(s.data()); });
 
   CLI::App app{"grep utility"};
 
