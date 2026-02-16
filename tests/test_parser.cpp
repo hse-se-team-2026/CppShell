@@ -35,7 +35,6 @@ TEST_CASE("ParseLine: pipeline two commands") {
   CHECK(cmd2.command == "cmd2");
   CHECK(cmd2.args.size() == 1);
   CHECK(cmd2.args[0] == "arg2");
-  CHECK(cmd2.args[0] == "arg2");
 }
 
 TEST_CASE("ParseLine: pipeline three commands") {
@@ -68,4 +67,35 @@ TEST_CASE("ParseLine: assignments only") {
   const auto &cmd = r.pipeline->commands[0];
   CHECK(cmd.command.empty());
   CHECK(cmd.assignments.at("FOO") == "bar");
+}
+
+TEST_CASE("ParseLine: pipeline with assignments") {
+  const auto r = cppshell::ParseLine("VAR=1 cmd1 arg1 | VAR=2 cmd2");
+  REQUIRE(r.Ok());
+  REQUIRE(r.pipeline.has_value());
+  REQUIRE(r.pipeline->commands.size() == 2);
+
+  const auto &cmd1 = r.pipeline->commands[0];
+  CHECK(cmd1.command == "cmd1");
+  CHECK(cmd1.assignments.at("VAR") == "1");
+
+  const auto &cmd2 = r.pipeline->commands[1];
+  CHECK(cmd2.command == "cmd2");
+  CHECK(cmd2.assignments.at("VAR") == "2");
+}
+
+TEST_CASE("ParseLine: quotes in pipeline") {
+  // echo "a | b" | cat -> echo gets "a | b" as arg
+  const auto r = cppshell::ParseLine("echo \"a | b\" | cat");
+  REQUIRE(r.Ok());
+  REQUIRE(r.pipeline.has_value());
+  REQUIRE(r.pipeline->commands.size() == 2);
+
+  const auto &cmd1 = r.pipeline->commands[0];
+  CHECK(cmd1.command == "echo");
+  CHECK(cmd1.args.size() == 1);
+  CHECK(cmd1.args[0] == "a | b"); // Pipe inside quotes preserved
+
+  const auto &cmd2 = r.pipeline->commands[1];
+  CHECK(cmd2.command == "cat");
 }

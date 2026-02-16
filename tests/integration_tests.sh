@@ -149,6 +149,32 @@ else
 fi
 
 
+# Test 9: Unknown Command -> xy
+echo "------------------------------------------------"
+echo "Testing Unknown Command: xy"
+ERR_FILE="err_cmd.tmp"
+$BIN <<< "xy" 2> $ERR_FILE > /dev/null
+# Check exit code 127
+CODE=$?
+if [ $CODE -eq 127 ]; then
+    echo "✅ PASS (Exit code 127)"
+else
+    echo "❌ FAIL: Expected 127 exit code, got $CODE"
+    rm $ERR_FILE
+    exit 1
+fi
+
+# Check stderr message
+if grep -q "xy: command not found" $ERR_FILE; then
+    echo "✅ PASS (Stderr message)"
+else
+    echo "❌ FAIL: Expected 'xy: command not found', got:"
+    cat $ERR_FILE
+    rm $ERR_FILE
+    exit 1
+fi
+rm $ERR_FILE
+
 echo "------------------------------------------------"
 echo "All integration tests passed!"
 exit 0

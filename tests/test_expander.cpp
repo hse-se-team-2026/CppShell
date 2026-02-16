@@ -83,3 +83,30 @@ TEST_CASE("Expander arithmetic") {
     REQUIRE(Expand("$((123))", env) == "123");
   }
 }
+
+TEST_CASE("Expander with pipes") {
+  Environment env;
+  env.Set("A", "1");
+  env.Set("B", "2");
+
+  SUBCASE("Variables around pipe") {
+    // Basic expands: $A | $B -> 1 | 2
+    REQUIRE(Expand("$A | $B", env) == "1 | 2");
+    // No spaces: $A|$B -> 1|2
+    REQUIRE(Expand("$A|$B", env) == "1|2");
+    // With command: echo $A | cat
+    REQUIRE(Expand("echo $A | cat", env) == "echo 1 | cat");
+  }
+}
+
+TEST_CASE("Expander inside quotes with pipes") {
+  Environment env;
+  env.Set("X", "abc");
+
+  SUBCASE("Pipe in string") {
+    // "a | $X" -> "a | abc"
+    REQUIRE(Expand("\"a | $X\"", env) == "\"a | abc\"");
+    // 'a | $X' -> 'a | $X'
+    REQUIRE(Expand("'a | $X'", env) == "'a | $X'");
+  }
+}
