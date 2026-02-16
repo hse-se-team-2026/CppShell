@@ -11,7 +11,7 @@
 - **Environment**: хранит переменные, поддерживает присваивания `NAME=value`.
 - **CommandFactory**: создаёт исполняемые команды (builtin или внешняя прогрмамма).
 - **Executor**: запускает команды, управляет pipeline и потоками.
-- **Builtins**: реализация `cat`, `echo`, `wc`, `pwd`, `exit`.
+- **Builtins**: реализация `cat`, `echo`, `wc`, `pwd`, `exit`, `grep`.
 - **ExternalRunner**: запуск внешних программ, передача аргументов и потоков.
 
 ## Объектная модель (AST)
@@ -97,6 +97,8 @@ flowchart LR
     AST --> EXE[Executor]
     EXE --> CF[CommandFactory]
     CF --> BI[Builtins]
+    BI --> GREP[GrepCommand]
+    BI --> OTHERS[Other Builtins]
     CF --> ER[ExternalRunner]
     EXP --> ENV[Environment]
     EXE --> ENV
@@ -136,7 +138,7 @@ flowchart LR
   - Локальные присваивания `NAME=value` перед командой и их применение.
   - Подстановки переменных (`$NAME`, `${NAME}`) и арифметических выражений.
   - Полноценная поддержка pipeline (`|`) с передачей потоков данных (stdout -> stdin).
-  - Builtin-команды: `cat`, `echo`, `wc`, `pwd`, `exit`.
+  - Builtin-команды: `cat`, `echo`, `wc`, `pwd`, `exit`, `grep`.
   - Запуск внешних программ с передачей `argv` и окружения.
   - Тесты (doctest) и рабочий CI для сборки и базового статического анализа.
   - Интеграционные тесты для проверки конвейеров и подстановок.

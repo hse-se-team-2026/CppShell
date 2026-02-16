@@ -175,6 +175,73 @@ else
 fi
 rm $ERR_FILE
 
+
+echo "------------------------------------------------"
+# Test 10: Grep Feature Tests
+echo "------------------------------------------------"
+echo "Testing Grep: Basic Match"
+RESULT=$(echo "echo 'hello world' | grep 'world'" | $BIN)
+if [[ "$RESULT" == *"hello world"* ]]; then
+  echo "✅ PASS (Basic Match)"
+else
+  echo "❌ FAIL: Expected 'hello world', got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Grep: Case Insensitive (-i)"
+RESULT=$(echo "echo 'HELLO WORLD' | grep -i 'world'" | $BIN)
+if [[ "$RESULT" == *"HELLO WORLD"* ]]; then
+  echo "✅ PASS (-i Match)"
+else
+  echo "❌ FAIL: Expected case-insensitive match, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+RESULT=$(echo "echo 'hello worldview' | grep -w 'world'" | $BIN)
+# Check that the output does NOT contain "hello worldview"
+if ! echo "$RESULT" | grep -q "hello worldview"; then
+  echo "✅ PASS (-w No Match)"
+else
+  echo "❌ FAIL: Expected no match for 'worldview' with -w, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+RESULT=$(echo "echo 'hello world view' | grep -w 'world'" | $BIN)
+if [[ "$RESULT" == *"hello world view"* ]]; then
+  echo "✅ PASS (-w Match)"
+else
+  echo "❌ FAIL: Expected match for 'world' with -w, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Grep: Context (-A)"
+# We expect 2 lines: the match "line1" and the context "line2"
+RESULT=$($BIN <<EOF
+echo "line1\nline2\nline3" | grep -A 1 "line1"
+EOF
+)
+if echo "$RESULT" | grep -q "line1" && echo "$RESULT" | grep -q "line2"; then
+  echo "✅ PASS (-A Context)"
+else
+  echo "❌ FAIL: Expected match + context, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Grep: Pipeline"
+RESULT=$(echo "ls README.md | grep 'README'" | $BIN)
+if [[ "$RESULT" == *"README.md"* ]]; then
+  echo "✅ PASS (Pipeline Source)"
+else
+  echo "❌ FAIL: Expected 'README.md', got:"
+  echo "$RESULT"
+  exit 1
+fi
+
 echo "------------------------------------------------"
 echo "All integration tests passed!"
 exit 0

@@ -66,6 +66,34 @@ TEST_CASE("Tokenize: pipes") {
     REQUIRE(r.tokens.size() == 3);
     CHECK(r.tokens[0] == "a");
     CHECK(r.tokens[1] == "|");
+    CHECK(r.tokens[1] == "|");
     CHECK(r.tokens[2] == "b");
   }
+}
+
+TEST_CASE("Tokenize: grep regex patterns") {
+  // Test that special regex characters are preserved when quoted
+  // grep "^test$" file
+  const auto r1 = cppshell::Tokenize("grep \"^test$\" file");
+  REQUIRE(r1.Ok());
+  REQUIRE(r1.tokens.size() == 3);
+  CHECK(r1.tokens[1] == "^test$");
+
+  // Test single quotes for avoiding expansion (though tokenizer handles both similarly for now)
+  // grep '.*' file
+  const auto r2 = cppshell::Tokenize("grep '.*' file");
+  REQUIRE(r2.Ok());
+  CHECK(r2.tokens[1] == ".*");
+  
+  // Test escaping internal quotes
+  // grep "foo\"bar"
+  const auto r3 = cppshell::Tokenize("grep \"foo\\\"bar\"");
+  REQUIRE(r3.Ok());
+  // Tokenizer usually stores unescaped content if implemented that way, 
+  // or raw tokens. Let's check implementation behavior from other tests.
+  // "echo \"a b\" c" -> "a b" (quotes stripped).
+  // So "foo\"bar" inside quotes -> foo"bar. 
+  // Wait, C++ string literal "grep \"foo\\\"bar\"" means input is: grep "foo\"bar"
+  // Parser/Tokenizer should strip outer quotes and unescape inner.
+  CHECK(r3.tokens[1] == "foo\"bar");
 }

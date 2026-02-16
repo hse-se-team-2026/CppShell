@@ -1,5 +1,5 @@
 #include "cppshell/grep_command.hpp"
-#include "CLI/CLI11.hpp"
+#include "CLI/CLI.hpp"
 
 #include <iostream>
 #include <iterator>
@@ -12,19 +12,16 @@ GrepCommand::GrepCommand(std::vector<std::string> args)
     : args_(std::move(args)) {}
 
 CommandResult GrepCommand::Execute(CommandContext &context) {
-  // Use CLI11 to parse arguments.
-  // Note: CLI11 normally parses "int argc, char** argv".
-  // We need to adapt our std::vector<std::string> args_.
-  // The first argument to CLI11 should be the program name (which we can fake or
-  // ignore), but our args_ does NOT contain the command name "grep".
-  // So we prepend a dummy name to match standard argv indexing.
-
+  // CLI11 expects a C-style `argv` array where `argv[0]` is the program name.
+  // Our `args_` vector contains only arguments, not the command name itself.
+  // We prepend a dummy "grep" string to satisfy CLI11's requirement.
+  
   std::vector<std::string> argv;
   argv.reserve(args_.size() + 1);
   argv.push_back("grep");
   argv.insert(argv.end(), args_.begin(), args_.end());
 
-  // Convert to C-style argv for CLI11
+  // Create C-style argv array for CLI11 parsing.
   std::vector<char *> c_argv;
   c_argv.reserve(argv.size());
   for (auto &s : argv) {
