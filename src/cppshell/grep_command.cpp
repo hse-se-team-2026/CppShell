@@ -1,6 +1,7 @@
 #include "cppshell/grep_command.hpp"
 #include "CLI/CLI.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <iterator>
 #include <regex>
@@ -15,7 +16,7 @@ CommandResult GrepCommand::Execute(CommandContext &context) {
   // CLI11 expects a C-style `argv` array where `argv[0]` is the program name.
   // Our `args_` vector contains only arguments, not the command name itself.
   // We prepend a dummy "grep" string to satisfy CLI11's requirement.
-  
+
   std::vector<std::string> argv;
   argv.reserve(args_.size() + 1);
   argv.push_back("grep");
@@ -24,9 +25,8 @@ CommandResult GrepCommand::Execute(CommandContext &context) {
   // Create C-style argv array for CLI11 parsing.
   std::vector<char *> c_argv;
   c_argv.reserve(argv.size());
-  for (auto &s : argv) {
-    c_argv.push_back(s.data());
-  }
+  std::transform(argv.begin(), argv.end(), std::back_inserter(c_argv),
+                 [](std::string &s) { return s.data(); });
 
   CLI::App app{"grep utility"};
 
@@ -40,18 +40,21 @@ CommandResult GrepCommand::Execute(CommandContext &context) {
   app.add_option("pattern", pattern, "Pattern to search for")->required();
   app.add_option("files", files, "Files to search in");
   app.add_flag("-i,--ignore-case", ignoreCase, "Ignore case distinctions");
-  app.add_flag("-w,--word-regexp", wordRegexp, "Select only those lines containing matches that form whole words");
-  app.add_option("-A,--after-context", afterContext, "Print NUM lines of trailing context");
+  app.add_flag(
+      "-w,--word-regexp", wordRegexp,
+      "Select only those lines containing matches that form whole words");
+  app.add_option("-A,--after-context", afterContext,
+                 "Print NUM lines of trailing context");
 
   try {
     app.parse(static_cast<int>(c_argv.size()), c_argv.data());
   } catch (const CLI::ParseError &e) {
     // If help flag is present, print to stdout, otherwise error
     if (e.get_name() == "CallForHelp") {
-        std::stringstream ss;
-        app.exit(e, ss, ss);
-        context.streams.out << ss.str();
-        return {0};
+      std::stringstream ss;
+      app.exit(e, ss, ss);
+      context.streams.out << ss.str();
+      return {0};
     }
     // CLI11 formats the error message for us
     std::stringstream ss;
@@ -61,7 +64,8 @@ CommandResult GrepCommand::Execute(CommandContext &context) {
   }
 
   // Configure regex
-  std::regex_constants::syntax_option_type flags = std::regex_constants::ECMAScript;
+  std::regex_constants::syntax_option_type flags =
+      std::regex_constants::ECMAScript;
   if (ignoreCase) {
     flags |= std::regex_constants::icase;
   }
@@ -73,7 +77,7 @@ CommandResult GrepCommand::Execute(CommandContext &context) {
     // This works well for standard word characters.
     std::string finalPattern = pattern;
     if (wordRegexp) {
-        finalPattern = "\\b" + pattern + "\\b";
+      finalPattern = "\\b" + pattern + "\\b";
     }
     re.assign(finalPattern, flags);
   } catch (const std::regex_error &e) {
@@ -81,17 +85,18 @@ CommandResult GrepCommand::Execute(CommandContext &context) {
     return {2};
   }
 
-  // If no files provided, read from stdin (represented by empty string in our logic below)
+  // If no files provided, read from stdin (represented by empty string in our
+  // logic below)
   if (files.empty()) {
-    files.push_back(""); 
+    files.push_back("");
   }
 
   int returnCode = 1; // 1 means "no match found" (standard grep behavior)
-  
+
   // Logic for context printing (-A)
-  // We track how many lines to print remaining after a match using 'linesToPrint'.
-  // Standard grep merges overlapping contexts, which is naturally handled by resetting 
-  // the counter on a new match.
+  // We track how many lines to print remaining after a match using
+  // 'linesToPrint'. Standard grep merges overlapping contexts, which is
+  // naturally handled by resetting the counter on a new match.
 
   for (const auto &file : files) {
     std::unique_ptr<std::istream> fileStream;
@@ -100,36 +105,51 @@ CommandResult GrepCommand::Execute(CommandContext &context) {
     if (file.empty() || file == "-") {
       in = &context.streams.in; // Use shared context stdin
     } else {
-        auto fs = std::make_unique<std::ifstream>(file);
-        if (!*fs) {
-            context.streams.err << "grep: " << file << ": No such file or directory\n";
-            returnCode = 2; // Error occurred
-            continue;
-        }
-        fileStream = std::move(fs);
-        in = fileStream.get();
+      auto fs = std::make_unique<std::ifstream>(file);
+      if (!*fs) {
+        context.streams.err << "grep: " << file
+                            << ": No such file or directory\n";
+        returnCode = 2; // Error occurred
+        continue;
+      }
+      fileStream = std::move(fs);
+      in = fileStream.get();
     }
 
     std::string line;
-    int linesToPrint = 0; // Remaining lines to print for context
-    
-    // Read lines one by one. Handles Windows CRLF by stripping \r.
+    int linesToPrint = 0;
+    bool previousPrinted = false;
+    bool skippedLines = false;
+
     while (std::getline(*in, line)) {
       if (!line.empty() && line.back() == '\r') {
-          line.pop_back();
+        line.pop_back();
       }
 
       bool match = false;
       if (std::regex_search(line, re)) {
         match = true;
         returnCode = 0; // Found at least one match
-        linesToPrint = afterContext; // Reset counter/extend context on new match
+
+        // Print separator for disjoint context blocks.
+        if (afterContext > 0 && previousPrinted && skippedLines) {
+          context.streams.out << "--\n";
+        }
+
+        linesToPrint = afterContext;
+        skippedLines = false;
       }
 
       if (match || linesToPrint > 0) {
         context.streams.out << line << '\n';
+        previousPrinted = true;
         if (!match) {
-            linesToPrint--;
+          linesToPrint--;
+        }
+        skippedLines = false;
+      } else {
+        if (previousPrinted) {
+          skippedLines = true;
         }
       }
     }

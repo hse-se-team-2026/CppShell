@@ -106,7 +106,7 @@ TEST_CASE("ParseLine: grep arguments") {
   REQUIRE(r.Ok());
   REQUIRE(r.pipeline.has_value());
   REQUIRE(r.pipeline->commands.size() == 1);
-  
+
   const auto &cmd = r.pipeline->commands[0];
   CHECK(cmd.command == "grep");
   // Expected args: -i, -A, 2, "some pattern", "file.txt"
@@ -119,19 +119,19 @@ TEST_CASE("ParseLine: grep arguments") {
 }
 
 TEST_CASE("ParseLine: grep complex pipeline on windows") {
-    // Pipeline with grep and multiple flags
-    const auto r = cppshell::ParseLine("cat input.txt | grep -w \"valid\" | wc");
-    REQUIRE(r.Ok());
-    REQUIRE(r.pipeline.has_value());
-    REQUIRE(r.pipeline->commands.size() == 3);
+  // Pipeline with grep and multiple flags
+  const auto r = cppshell::ParseLine("cat input.txt | grep -w \"valid\" | wc");
+  REQUIRE(r.Ok());
+  REQUIRE(r.pipeline.has_value());
+  REQUIRE(r.pipeline->commands.size() == 3);
 
-    CHECK(r.pipeline->commands[0].command == "cat");
-    
-    const auto &grepCmd = r.pipeline->commands[1];
-    CHECK(grepCmd.command == "grep");
-    REQUIRE(grepCmd.args.size() == 2);
-    CHECK(grepCmd.args[0] == "-w");
-    CHECK(grepCmd.args[1] == "valid");
-    
-    CHECK(r.pipeline->commands[2].command == "wc");
+  CHECK(r.pipeline->commands[0].command == "cat");
+
+  const auto &grepCmd = r.pipeline->commands[1];
+  CHECK(grepCmd.command == "grep");
+  REQUIRE(grepCmd.args.size() == 2);
+  CHECK(grepCmd.args[0] == "-w");
+  CHECK(grepCmd.args[1] == "valid");
+
+  CHECK(r.pipeline->commands[2].command == "wc");
 }

@@ -86,22 +86,54 @@
 - `exit` в одиночной команде завершает основной цикл интерпретатора.
 - `exit` в составе pipeline рассматривается как обычная команда текущего процесса и не завершает интерпретатор.
 
-## Диаграмма компонентов (Mermaid)
-
 ```mermaid
-flowchart LR
-    CLI[CLI/REPL] --> LEX[Lexer]
-    LEX --> EXP[Expander]
-    EXP --> PAR[Parser]
-    PAR --> AST[AST: Pipeline / CommandNode]
-    AST --> EXE[Executor]
-    EXE --> CF[CommandFactory]
-    CF --> BI[Builtins]
-    BI --> GREP[GrepCommand]
-    BI --> OTHERS[Other Builtins]
-    CF --> ER[ExternalRunner]
-    EXP --> ENV[Environment]
-    EXE --> ENV
+classDiagram
+    direction LR
+    class CLI {
+        <<component>>
+    }
+    class Lexer {
+        <<component>>
+    }
+    class Expander {
+        <<component>>
+    }
+    class Parser {
+        <<component>>
+    }
+    class Executor {
+        <<component>>
+    }
+    class Environment {
+        <<component>>
+    }
+    class CommandFactory {
+        <<component>>
+    }
+    class Builtins {
+        <<component>>
+    }
+    class ExternalRunner {
+        <<component>>
+    }
+    class AST_Pipeline {
+        <<artifact>>
+    }
+
+    CLI ..> Lexer : use
+    CLI ..> Expander : use
+    CLI ..> Parser : use
+    CLI ..> Executor : use
+    
+    Parser ..> AST_Pipeline : create
+    Executor ..> AST_Pipeline : read
+    
+    Executor ..> CommandFactory : use
+    CommandFactory ..> Builtins : create
+    CommandFactory ..> ExternalRunner : create
+    
+    Expander ..> Environment : read
+    Executor ..> Environment : read/write
 ```
 
 ## Модульная структура

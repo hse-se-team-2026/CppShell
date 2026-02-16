@@ -2,7 +2,6 @@
 
 #include "cppshell/command.hpp"
 
-
 #include <string>
 #include <vector>
 

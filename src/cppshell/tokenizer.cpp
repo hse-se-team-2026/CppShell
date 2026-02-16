@@ -21,16 +21,16 @@ TokenizeResult Tokenize(std::string_view line) {
     const char ch = line[i];
 
     if (escaped) {
-        // Append escaped character literally.
-        current.push_back(ch);
-        escaped = false;
-        continue;
+      // Append escaped character literally.
+      current.push_back(ch);
+      escaped = false;
+      continue;
     }
 
     if (ch == '\\') {
-        // Handle escape character. The next character will be treated literally.
-        escaped = true;
-        continue;
+      // Handle escape character. The next character will be treated literally.
+      escaped = true;
+      continue;
     }
 
     if (quote == '\0') {
@@ -67,11 +67,11 @@ TokenizeResult Tokenize(std::string_view line) {
     result.error = "Unterminated quote";
     return result;
   }
-  
+
   if (escaped) {
-      // Trailing backslash is treated as an error (e.g., unexpected EOF).
-      result.error = "Trailing backslash"; 
-      return result;
+    // Trailing backslash is treated as an error (e.g., unexpected EOF).
+    result.error = "Trailing backslash";
+    return result;
   }
 
   Flush();

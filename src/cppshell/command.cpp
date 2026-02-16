@@ -1,8 +1,8 @@
 #include "cppshell/command.hpp"
 
 #include "cppshell/builtins.hpp"
-#include "cppshell/grep_command.hpp"
 #include "cppshell/external_command.hpp"
+#include "cppshell/grep_command.hpp"
 
 namespace cppshell {
 
