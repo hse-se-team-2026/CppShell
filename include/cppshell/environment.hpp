@@ -30,6 +30,9 @@ public:
   [[nodiscard]] Environment WithOverrides(
       const std::unordered_map<std::string, std::string> &overrides) const;
 
+  /** Returns the value of the variable or empty string if not set. */
+  [[nodiscard]] std::string Get(const std::string &name) const;
+
   /** Returns environment as a list of strings `NAME=VALUE` suitable for exec.
    */
   [[nodiscard]] std::vector<std::string> ToEnvStrings() const;

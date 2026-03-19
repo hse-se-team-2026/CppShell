@@ -20,7 +20,7 @@ cppshell::CommandContext MakeCtx(std::istream &in, std::ostream &out,
   return cppshell::CommandContext{s, env};
 }
 
-[[nodiscard]] std::string NormalizeNewlines(std::string s) {
+[[nodiscard]] std::string NormalizeNewlines(const std::string &s) {
   std::string out;
   out.reserve(s.size());
   for (size_t i = 0; i < s.size(); ++i) {
