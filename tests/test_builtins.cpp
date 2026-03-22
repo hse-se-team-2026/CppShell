@@ -137,7 +137,7 @@ TEST_CASE("help pattern shows detailed info") {
   const auto r = cmd.Execute(ctx);
 
   CHECK(r.exitCode == 0);
-  CHECK(out.str().find("echo [-neE] [arg ...]") != std::string::npos);
+  CHECK(out.str().find("echo [arg ...]") != std::string::npos);
   CHECK(out.str().find("Output the args") != std::string::npos);
 }
 
