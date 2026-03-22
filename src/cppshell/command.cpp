@@ -28,6 +28,9 @@ CommandFactory::Create(const std::string &name,
   if (name == "grep") {
     return std::make_unique<GrepCommand>(args);
   }
+  if (name == "help") {
+    return std::make_unique<HelpCommand>(args);
+  }
 
   return std::make_unique<ExternalCommand>(name, args, envForCommand);
 }

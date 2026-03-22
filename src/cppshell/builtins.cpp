@@ -3,7 +3,9 @@
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iterator>
+#include <map>
 #include <sstream>
 
 namespace cppshell {
@@ -182,6 +184,100 @@ CommandResult ExitCommand::Execute(CommandContext &context) {
     r.exitCode = 2;
     return r;
   }
+}
+
+namespace {
+
+struct BuiltinInfo {
+  std::string summary;
+  std::string detail;
+};
+
+const std::map<std::string, BuiltinInfo> &GetBuiltinsInfo() {
+  static const std::map<std::string, BuiltinInfo> builtins = {
+      {"echo",
+       {"echo [arg ...]",
+        "Output the args, separated by spaces, terminated with a newline.\n"
+        "Exit Status: Returns 0 unless a write error occurs."}},
+      {"pwd",
+       {"pwd",
+        "Print the absolute pathname of the current working directory.\n"
+        "Exit Status: Returns 0 unless an error occurs while reading the "
+        "current directory."}},
+      {"cat",
+       {"cat [FILE]...",
+        "Concatenate FILE(s) to standard output.\n"
+        "With no FILE, or when FILE is -, read standard input."}},
+      {"wc",
+       {"wc [FILE]", "Print newline, word, and byte counts for each FILE.\n"
+                     "With no FILE, or when FILE is -, read standard input."}},
+      {"exit",
+       {"exit [n]",
+        "Exit the shell with a status of N.  If N is omitted, the exit "
+        "status is that of the last command executed."}},
+      {"grep",
+       {"grep [OPTIONS] PATTERN [FILE]...",
+        "Search for PATTERN in each FILE or standard input.\n"
+        "Options:\n"
+        "  -i, --ignore-case    ignore case distinctions\n"
+        "  -w, --word-regexp    force PATTERN to match only whole words\n"
+        "  -A, --after-context=NUM\n"
+        "                       print NUM lines of trailing context\n"
+        "Examples of PATTERN (ECMAScript syntax):\n"
+        "  ^Error               lines starting with 'Error'\n"
+        "  [0-9]+               lines containing one or more digits\n"
+        "  (cpp|hpp)$           lines ending in .cpp or .hpp\n"
+        "  \\bword\\b             lines containing 'word' as a whole word"}},
+      {"help",
+       {"help [pattern ...]",
+        "Display information about builtin commands.\n"
+        "Displays brief summaries of builtin commands.  If PATTERN is\n"
+        "specified, gives detailed help on all commands matching PATTERN."}}};
+  return builtins;
+}
+
+} // namespace
+
+HelpCommand::HelpCommand(std::vector<std::string> args)
+    : args_(std::move(args)) {}
+
+CommandResult HelpCommand::Execute(CommandContext &context) {
+  const auto &builtins = GetBuiltinsInfo();
+
+  if (args_.empty()) {
+    context.streams.out << "CppShell, version 0.1.0-release\n"
+                           "These shell commands are defined internally.  Type "
+                           "`help' to see this list.\n"
+                           "Type `help name' to find out more about the "
+                           "function `name'.\n\n";
+
+    size_t i = 0;
+    for (const auto &[name, info] : builtins) {
+      context.streams.out << std::left << std::setw(20) << info.summary;
+      if (++i % 2 == 0) {
+        context.streams.out << '\n';
+      }
+    }
+    if (i % 2 != 0) {
+      context.streams.out << '\n';
+    }
+    return {0};
+  }
+
+  int exitCode = 0;
+  for (const auto &pattern : args_) {
+    auto it = builtins.find(pattern);
+    if (it != builtins.end()) {
+      context.streams.out << it->first << ": " << it->second.summary << "\n"
+                          << "    " << it->second.detail << "\n";
+    } else {
+      context.streams.err << "help: no help topics match `" << pattern
+                          << "'.  Try `help help'.\n";
+      exitCode = 1;
+    }
+  }
+
+  return {exitCode};
 }
 
 } // namespace cppshell

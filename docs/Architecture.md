@@ -116,6 +116,9 @@ classDiagram
     class ExternalRunner {
         <<component>>
     }
+    class CLI11 {
+        <<external library>>
+    }
     class AST_Pipeline {
         <<artifact>>
     }
@@ -132,9 +135,16 @@ classDiagram
     CommandFactory ..> Builtins : create
     CommandFactory ..> ExternalRunner : create
     
+    Builtins ..> CLI11 : use (grep)
+    
     Expander ..> Environment : read
     Executor ..> Environment : read/write
 ```
+
+## Внешние зависимости
+- **CLI11** (v2.3.2): Мощная библиотека для парсинга аргументов командной строки. Используется в `GrepCommand` для обработки флагов и параметров. Интегрирована через `FetchContent`.
+- **doctest** (v2.4.11): Легковесный фреймворк для модульного тестирования. Используется для всех C++ тестов проекта.
+
 
 ## Модульная структура
 - **cli**: REPL-цикл (чтение строки, обработка `exit`) и запуск конвейера обработки.

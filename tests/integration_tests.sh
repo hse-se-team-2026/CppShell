@@ -242,6 +242,56 @@ else
   exit 1
 fi
 
+echo "Testing Grep: Regex Anchors"
+# Test ^ and $
+RESULT=$($BIN <<EOF
+echo "start line\nmiddle line\nend line" | grep "^start"
+echo "start line\nmiddle line\nend line" | grep "line$"
+EOF
+)
+if [[ "$RESULT" == *"start line"* ]] && [[ "$RESULT" == *"middle line"* ]] && [[ "$RESULT" == *"end line"* ]]; then
+  echo "✅ PASS (Regex Anchors)"
+else
+  echo "❌ FAIL: Expected matches for ^ and $, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Grep: Regex Classes"
+# Test digits [0-9]
+RESULT=$(echo "echo 'count 123' | grep '[0-9]'" | $BIN)
+if [[ "$RESULT" == *"count 123"* ]]; then
+  echo "✅ PASS (Regex Classes)"
+else
+  echo "❌ FAIL: Expected match for [0-9], got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "------------------------------------------------"
+echo "Testing Help Command"
+echo "Testing Help: Listing"
+RESULT=$(echo "help" | $BIN)
+if [[ "$RESULT" == *"echo"* ]] && [[ "$RESULT" == *"grep"* ]] && [[ "$RESULT" == *"help"* ]]; then
+  echo "✅ PASS (Help Listing)"
+else
+  echo "❌ FAIL: Expected list of builtins, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Help: Specific Command"
+RESULT=$(echo "help echo" | $BIN)
+if [[ "$RESULT" == *"echo [arg ...]"* ]] && [[ "$RESULT" == *"Output the args"* ]]; then
+  echo "✅ PASS (Help Specific)"
+else
+  echo "❌ FAIL: Expected detailed help for echo, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "------------------------------------------------"
+
 echo "------------------------------------------------"
 echo "All integration tests passed!"
 exit 0
