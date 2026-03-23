@@ -175,6 +175,123 @@ else
 fi
 rm $ERR_FILE
 
+
+echo "------------------------------------------------"
+# Test 10: Grep Feature Tests
+echo "------------------------------------------------"
+echo "Testing Grep: Basic Match"
+RESULT=$(echo "echo 'hello world' | grep 'world'" | $BIN)
+if [[ "$RESULT" == *"hello world"* ]]; then
+  echo "✅ PASS (Basic Match)"
+else
+  echo "❌ FAIL: Expected 'hello world', got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Grep: Case Insensitive (-i)"
+RESULT=$(echo "echo 'HELLO WORLD' | grep -i 'world'" | $BIN)
+if [[ "$RESULT" == *"HELLO WORLD"* ]]; then
+  echo "✅ PASS (-i Match)"
+else
+  echo "❌ FAIL: Expected case-insensitive match, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+RESULT=$(echo "echo 'hello worldview' | grep -w 'world'" | $BIN)
+# Check that the output does NOT contain "hello worldview"
+if ! echo "$RESULT" | grep -q "hello worldview"; then
+  echo "✅ PASS (-w No Match)"
+else
+  echo "❌ FAIL: Expected no match for 'worldview' with -w, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+RESULT=$(echo "echo 'hello world view' | grep -w 'world'" | $BIN)
+if [[ "$RESULT" == *"hello world view"* ]]; then
+  echo "✅ PASS (-w Match)"
+else
+  echo "❌ FAIL: Expected match for 'world' with -w, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Grep: Context (-A)"
+# We expect 2 lines: the match "line1" and the context "line2"
+RESULT=$($BIN <<EOF
+echo "line1\nline2\nline3" | grep -A 1 "line1"
+EOF
+)
+if echo "$RESULT" | grep -q "line1" && echo "$RESULT" | grep -q "line2"; then
+  echo "✅ PASS (-A Context)"
+else
+  echo "❌ FAIL: Expected match + context, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Grep: Pipeline"
+RESULT=$(echo "ls README.md | grep 'README'" | $BIN)
+if [[ "$RESULT" == *"README.md"* ]]; then
+  echo "✅ PASS (Pipeline Source)"
+else
+  echo "❌ FAIL: Expected 'README.md', got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Grep: Regex Anchors"
+# Test ^ and $
+RESULT=$($BIN <<EOF
+echo "start line\nmiddle line\nend line" | grep "^start"
+echo "start line\nmiddle line\nend line" | grep "line$"
+EOF
+)
+if [[ "$RESULT" == *"start line"* ]] && [[ "$RESULT" == *"middle line"* ]] && [[ "$RESULT" == *"end line"* ]]; then
+  echo "✅ PASS (Regex Anchors)"
+else
+  echo "❌ FAIL: Expected matches for ^ and $, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Grep: Regex Classes"
+# Test digits [0-9]
+RESULT=$(echo "echo 'count 123' | grep '[0-9]'" | $BIN)
+if [[ "$RESULT" == *"count 123"* ]]; then
+  echo "✅ PASS (Regex Classes)"
+else
+  echo "❌ FAIL: Expected match for [0-9], got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "------------------------------------------------"
+echo "Testing Help Command"
+echo "Testing Help: Listing"
+RESULT=$(echo "help" | $BIN)
+if [[ "$RESULT" == *"echo"* ]] && [[ "$RESULT" == *"grep"* ]] && [[ "$RESULT" == *"help"* ]]; then
+  echo "✅ PASS (Help Listing)"
+else
+  echo "❌ FAIL: Expected list of builtins, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "Testing Help: Specific Command"
+RESULT=$(echo "help echo" | $BIN)
+if [[ "$RESULT" == *"echo [arg ...]"* ]] && [[ "$RESULT" == *"Output the args"* ]]; then
+  echo "✅ PASS (Help Specific)"
+else
+  echo "❌ FAIL: Expected detailed help for echo, got:"
+  echo "$RESULT"
+  exit 1
+fi
+
+echo "------------------------------------------------"
+
 echo "------------------------------------------------"
 echo "All integration tests passed!"
 exit 0

@@ -18,11 +18,21 @@ foreach(config Debug Release RelWithDebInfo MinSizeRel)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${config} ${CMAKE_SOURCE_DIR}/bin)
 endforeach()
 
+
+include(FetchContent)
+FetchContent_Declare(
+    cli11
+    URL https://github.com/CLIUtils/CLI11/archive/refs/tags/v2.3.2.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(cli11)
+
 add_library(cppshell_core
     src/cppshell/tokenizer.cpp
     src/cppshell/parser.cpp
     src/cppshell/environment.cpp
     src/cppshell/builtins.cpp
+    src/cppshell/grep_command.cpp
     src/cppshell/external_command.cpp
     src/cppshell/command.cpp
     src/cppshell/shell.cpp
@@ -30,6 +40,8 @@ add_library(cppshell_core
 )
 
 target_include_directories(cppshell_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(cppshell_core PRIVATE ${cli11_SOURCE_DIR}/include)
+target_link_libraries(cppshell_core PRIVATE CLI11::CLI11)
 target_compile_features(cppshell_core PUBLIC cxx_std_23)
 
 add_executable(cppshell src/cli/cli.cpp)
@@ -39,7 +51,6 @@ include(CTest)
 if (BUILD_TESTING)
     enable_testing()
 
-    include(FetchContent)
     FetchContent_Declare(
         doctest
         URL https://github.com/doctest/doctest/archive/refs/tags/v2.4.11.tar.gz
@@ -59,6 +70,7 @@ if (BUILD_TESTING)
         tests/test_builtins.cpp
         tests/test_external.cpp
         tests/test_expander.cpp
+        tests/test_grep.cpp
     )
 
     target_link_libraries(cppshell_tests PRIVATE cppshell_core doctest::doctest)

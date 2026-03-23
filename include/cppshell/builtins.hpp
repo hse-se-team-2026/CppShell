@@ -72,4 +72,17 @@ private:
   std::vector<std::string> args_;
 };
 
+/** Builtin: help. */
+class HelpCommand final : public ICommand {
+public:
+  /** Constructs the command with its argv (excluding the command name). */
+  explicit HelpCommand(std::vector<std::string> args);
+
+  /** Prints summary of builtins or detailed help for a specific one. */
+  [[nodiscard]] CommandResult Execute(CommandContext &context) override;
+
+private:
+  std::vector<std::string> args_;
+};
+
 } // namespace cppshell

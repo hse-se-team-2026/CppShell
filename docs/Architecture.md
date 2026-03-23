@@ -11,7 +11,7 @@
 - **Environment**: хранит переменные, поддерживает присваивания `NAME=value`.
 - **CommandFactory**: создаёт исполняемые команды (builtin или внешняя прогрмамма).
 - **Executor**: запускает команды, управляет pipeline и потоками.
-- **Builtins**: реализация `cat`, `echo`, `wc`, `pwd`, `exit`.
+- **Builtins**: реализация `cat`, `echo`, `wc`, `pwd`, `exit`, `grep`.
 - **ExternalRunner**: запуск внешних программ, передача аргументов и потоков.
 
 ## Объектная модель (AST)
@@ -86,21 +86,65 @@
 - `exit` в одиночной команде завершает основной цикл интерпретатора.
 - `exit` в составе pipeline рассматривается как обычная команда текущего процесса и не завершает интерпретатор.
 
-## Диаграмма компонентов (Mermaid)
-
 ```mermaid
-flowchart LR
-    CLI[CLI/REPL] --> LEX[Lexer]
-    LEX --> EXP[Expander]
-    EXP --> PAR[Parser]
-    PAR --> AST[AST: Pipeline / CommandNode]
-    AST --> EXE[Executor]
-    EXE --> CF[CommandFactory]
-    CF --> BI[Builtins]
-    CF --> ER[ExternalRunner]
-    EXP --> ENV[Environment]
-    EXE --> ENV
+classDiagram
+    direction LR
+    class CLI {
+        <<component>>
+    }
+    class Lexer {
+        <<component>>
+    }
+    class Expander {
+        <<component>>
+    }
+    class Parser {
+        <<component>>
+    }
+    class Executor {
+        <<component>>
+    }
+    class Environment {
+        <<component>>
+    }
+    class CommandFactory {
+        <<component>>
+    }
+    class Builtins {
+        <<component>>
+    }
+    class ExternalRunner {
+        <<component>>
+    }
+    class CLI11 {
+        <<external library>>
+    }
+    class AST_Pipeline {
+        <<artifact>>
+    }
+
+    CLI ..> Lexer : use
+    CLI ..> Expander : use
+    CLI ..> Parser : use
+    CLI ..> Executor : use
+    
+    Parser ..> AST_Pipeline : create
+    Executor ..> AST_Pipeline : read
+    
+    Executor ..> CommandFactory : use
+    CommandFactory ..> Builtins : create
+    CommandFactory ..> ExternalRunner : create
+    
+    Builtins ..> CLI11 : use (grep)
+    
+    Expander ..> Environment : read
+    Executor ..> Environment : read/write
 ```
+
+## Внешние зависимости
+- **CLI11** (v2.3.2): Мощная библиотека для парсинга аргументов командной строки. Используется в `GrepCommand` для обработки флагов и параметров. Интегрирована через `FetchContent`.
+- **doctest** (v2.4.11): Легковесный фреймворк для модульного тестирования. Используется для всех C++ тестов проекта.
+
 
 ## Модульная структура
 - **cli**: REPL-цикл (чтение строки, обработка `exit`) и запуск конвейера обработки.
@@ -136,7 +180,7 @@ flowchart LR
   - Локальные присваивания `NAME=value` перед командой и их применение.
   - Подстановки переменных (`$NAME`, `${NAME}`) и арифметических выражений.
   - Полноценная поддержка pipeline (`|`) с передачей потоков данных (stdout -> stdin).
-  - Builtin-команды: `cat`, `echo`, `wc`, `pwd`, `exit`.
+  - Builtin-команды: `cat`, `echo`, `wc`, `pwd`, `exit`, `grep`.
   - Запуск внешних программ с передачей `argv` и окружения.
   - Тесты (doctest) и рабочий CI для сборки и базового статического анализа.
   - Интеграционные тесты для проверки конвейеров и подстановок.

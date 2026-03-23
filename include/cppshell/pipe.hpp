@@ -53,7 +53,7 @@ private:
 // Stream buffer capable of reading from a Pipe
 class PipeReadBuffer : public std::streambuf {
 public:
-  explicit PipeReadBuffer(Pipe &pipe) : pipe_(pipe) {}
+  explicit PipeReadBuffer(Pipe &pipe) : pipe_(pipe), buffer_{} {}
 
 protected:
   // Read from pipe into buffer

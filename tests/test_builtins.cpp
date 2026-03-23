@@ -110,3 +110,47 @@ TEST_CASE("exit requests termination") {
   CHECK(r.shouldExit);
   CHECK(r.shellExitCode == 42);
 }
+
+TEST_CASE("help lists internal commands") {
+  std::istringstream in("");
+  std::ostringstream out;
+  std::ostringstream err;
+  const cppshell::Environment env;
+
+  cppshell::HelpCommand cmd({});
+  auto ctx = MakeCtx(in, out, err, env);
+  const auto r = cmd.Execute(ctx);
+
+  CHECK(r.exitCode == 0);
+  CHECK(out.str().find("echo") != std::string::npos);
+  CHECK(out.str().find("help") != std::string::npos);
+}
+
+TEST_CASE("help pattern shows detailed info") {
+  std::istringstream in("");
+  std::ostringstream out;
+  std::ostringstream err;
+  const cppshell::Environment env;
+
+  cppshell::HelpCommand cmd({"echo"});
+  auto ctx = MakeCtx(in, out, err, env);
+  const auto r = cmd.Execute(ctx);
+
+  CHECK(r.exitCode == 0);
+  CHECK(out.str().find("echo [arg ...]") != std::string::npos);
+  CHECK(out.str().find("Output the args") != std::string::npos);
+}
+
+TEST_CASE("help unknown pattern yields error") {
+  std::istringstream in("");
+  std::ostringstream out;
+  std::ostringstream err;
+  const cppshell::Environment env;
+
+  cppshell::HelpCommand cmd({"unknown_cmd"});
+  auto ctx = MakeCtx(in, out, err, env);
+  const auto r = cmd.Execute(ctx);
+
+  CHECK(r.exitCode == 1);
+  CHECK(err.str().find("no help topics match") != std::string::npos);
+}
